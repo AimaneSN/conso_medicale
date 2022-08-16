@@ -1,13 +1,16 @@
 #importation des packages
-import pyspark
+import pyspark#si non installé: pip install pyspark, python3 -m pip install pyspark
 from pyspark.sql import SparkSession, Row, HiveContext, Window
 from pyspark.sql.types import *
 from pyspark.conf import SparkConf
 from pyspark.context import SparkContext
+from joblibspark import register_spark
 
 import  pyspark.sql.functions  as fy
 import pandas as pd
 import matplotlib.pyplot as plt
+#from tkinter import *
+
 import numpy as np
 import os
 import re as re
@@ -23,25 +26,36 @@ from pyspark.ml.feature import OneHotEncoder, StringIndexer, VectorAssembler
 from pyspark.ml.stat import KolmogorovSmirnovTest, ChiSquareTest
 from pyspark.ml.classification import LogisticRegression
 from pyspark.ml.evaluation import BinaryClassificationEvaluator
+from pyspark.ml.regression import LinearRegression
 
+from sklearn.linear_model import BayesianRidge, Ridge
+from sklearn.experimental import enable_iterative_imputer  
+from sklearn.kernel_approximation import Nystroem
+from sklearn.impute import SimpleImputer, IterativeImputer
+from sklearn.pipeline import make_pipeline
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import cross_val_score
+from sklearn.neighbors import KNeighborsRegressor
+
+
+#sp1.sparkContext.getConf().getAll()
+#sp1 = SparkSession.builder.master('spark://aimane-Aspire-V3-771:7077').appName('myappp').getOrCreate()
 sp1 = SparkSession.builder.appName('myApp').enableHiveSupport().getOrCreate()
 
-#chemins des bases de données brutes
 conso2019_path = "/home/aimane/Documents/BDDCNSS/conso2019.txt"
 assiettes2019_path ="/home/aimane/Documents/BDDCNSS/assiettes_2019.txt"
 ald_path = "/home/aimane/Documents/BDDCNSS/ALD_2015_2019.txt"
 medic_path = "/home/aimane/Documents/BDDCNSS/médic_2019.txt"
 
-#chemins des bases nettoyées
 conso2019n_path = "/media/aimane/A376FE9926C3C949/Users/Aimane/Desktop/bases_csv/conso2019.csv"
 assiettes2019n_path = "/media/aimane/A376FE9926C3C949/Users/Aimane/Desktop/bases_csv/assiettes2019.csv"
 aldn_path = "/media/aimane/A376FE9926C3C949/Users/Aimane/Desktop/bases_csv/ALD2015_2019.csv"
 
 
 def convert_column(df, column_name, coltype):
-    ''' Arguments: dataframe spark[df], nom de la colonne à convertir [column_name:string], type vers lequel faire la conversion
-    [coltype: DoubleType() ou DateType() ou StringType()]
-        Output : dataframe de départ avec la colonne convertie '''
+    # arguments: dataframe spark[df], nom de la colonne à convertir [column_name:string], type vers lequel faire la conversion
+    #[coltype: DoubleType() ou DateType() ou StringType()]
+    # output : dataframe de départ avec la colonne convertie
     if (coltype==DoubleType()):
         df=df.withColumn(column_name, fy.regexp_replace(column_name, ",", "."))
         df=df.withColumn(column_name, df[column_name].cast(DoubleType()))
@@ -51,6 +65,8 @@ def convert_column(df, column_name, coltype):
     else:
         df=df.withColumn(column_name, df[column_name].cast(coltype))
     return df
+
+#Détection du schéma
 
 def get_file(filepath):
     '''Argument : filepath: chemin du fichier à importer
@@ -71,6 +87,9 @@ base_conso=get_file(conso2019_path)
 base_assiette=get_file(assiettes2019_path)
 base_ald=get_file(ald_path)
 base_medic=get_file(medic_path)
+
+base_assiette.describe().toPandas().transpose()
+base_conso.describe().toPandas().transpose()
 
 #basen_conso=get_schema(conso2019n_path)
 #basen_assiette=get_schema(assiettes2019n_path)
@@ -145,8 +164,6 @@ base_assiette2= sp1.sql("SELECT *, "
 base_assiette2=base_assiette2.withColumn("type_benef", fy.when(fy.col("type_beneficiaire")=="Adhérent", fy.col("type_adherent"))
                                                          .otherwise(fy.col("type_beneficiaire")))
 
-base_assiette2.createOrReplaceTempView("assiette_")
-
 #traitement âges
 # agep=Window.partitionBy("type_adherent", "type_beneficiaire", "SEXE")
 # base_assiette3=base_assiette2.withColumn("age_moyen",fy.mean("age").over(agep))  #lent
@@ -174,18 +191,22 @@ base_assiette2=base_assiette2.withColumn("assiette_cotisation2", fy.when( (fy.co
                                           fy.col("ASSIETTE_COTISATION") * 12 / fy.col("NOMBRE_MOIS"))
                                           .otherwise(0))
 
+base_assiette2.createOrReplaceTempView("assiette_")
 
-#Echantillons des bases initiales. Pour utiliser les bases complètes, il suffit d'effacer la partie ".limit(80000)" dans les affectations ci-après
+#Echantillons des bases initiales. Pour utiliser les bases complètes, il suffit d'effacer la partie ".limit(80000)" dans les affectations ci-après#
+assiette_e=base_assiette2.limit(85000)
+conso_e=base_conso.limit(85000)
+ald_e=base_ald.limit(85000)
 
-assiette_e=base_assiette2.limit(80000)
-conso_e=base_conso.limit(80000)
-ald_e=base_ald.limit(80000)
+#assiette_e=base_assiette2
+#conso_e=base_conso
+#ald_e=base_ald
 
 j1 = conso_e.join(assiette_e, conso_e.beneficiairec==assiette_e.beneficiaire_a, "full")
 ald_e=ald_e.withColumnRenamed("rang", "rangg")
 j2 = j1.join(ald_e, j1.beneficiaire_a==ald_e.beneficiaire, "full")
 
-jff = j2.withColumn("ALD_n", fy.when(((fy.col("date_fin_accord")>=datetime.datetime(2019,1,1)) &                         (fy.col("DATE_DEBUT_SOIN").isNull())) 
+jff = j2.withColumn("ALD_n", fy.when(((fy.col("date_fin_accord")>=datetime.datetime(2019,1,1)) & (fy.col("DATE_DEBUT_SOIN").isNull())) 
                                     |((fy.col("DATE_DEBUT_SOIN").isNotNull()) & (fy.col("DATE_DEBUT_SOIN").between(fy.col("date_debut_accord"),fy.col("date_fin_accord"))) )
                                                                                                                                                             
 , 1).otherwise(0))                                                                                                                                                                                                                                                                                                                                                           
@@ -193,7 +214,9 @@ jff = j2.withColumn("ALD_n", fy.when(((fy.col("date_fin_accord")>=datetime.datet
 jff=jff.withColumn("beneficiaire_a", fy.when(fy.col("beneficiaire_a").isNull() & fy.col("beneficiairec").isNotNull(), fy.col("beneficiairec")).when(fy.col("beneficiaire_a").isNull() & fy.col("beneficiaire").isNotNull(),
 fy.col("beneficiaire")).otherwise(fy.col("beneficiaire_a")))
                                   
-jffinner= jff.filter( (fy.col("DATE_IMMATRICULATION").isNotNull()) & (fy.col("RANG").isNotNull()) ) #95865
+jffinner= jff.filter( (fy.col("DATE_IMMATRICULATION").isNotNull()) & (fy.col("RANG").isNotNull()) ) #95865 (si taille initiale des bases=80000)
+jffinner_a= jff.filter( (fy.col("DATE_IMMATRICULATION").isNotNull()) & (fy.col("RANG").isNotNull()) & (fy.col("type_beneficiaire")=="Adhérent") ) #95865 (si taille initiale des bases=80000)
+jfinner2_a=jffinner_a.dropDuplicates()
 jfinner2=jffinner.dropDuplicates() #95067
 jfinner2.createOrReplaceTempView("jffinner")
 
@@ -205,15 +228,67 @@ jffp=jff.withColumn("SEXE", fy.when( jff["RANG"].between(3,10), "F").otherwise(j
 jffp=jffp.withColumn("SEXE_ad", fy.first(jff["SEXE"]).over(winpartition))
 jffp=jffp.withColumn("SEXE", fy.when( (jff["RANG"]==2) & (jff["SEXE"].isNull()) & (fy.first(jff["SEXE"]).over(winpartition).isNotNull()), fy.first(jff["SEXE"]).over(winpartition)).otherwise(jff["SEXE"]))
 
+jff.createOrReplaceTempView("jff")
 
-##Calcul des fréquences de consommation
+nb_actes=sp1.sql("SELECT SEXE, ALD_n, tranche, LIB_ACTE, COUNT(LIB_ACTE) AS NOMBRE_ACTES, COUNT (DISTINCT beneficiaire_a) AS EFFECTIF FROM jff WHERE SEXE IS NOT NULL AND tranche IS NOT NULL AND LIB_ACTE IS NOT NULL "
+                  "GROUP BY SEXE, tranche, ALD_n, LIB_ACTE "
+                  "ORDER BY SEXE, ALD_n,CASE "
+                  "WHEN tranche=\"[0-5[\" THEN 1 "
+                  "WHEN tranche=\"[5-10[\" THEN 2 "
+                  "WHEN tranche=\"[10-15[\" THEN 3 "
+                  "WHEN tranche=\"[15-20[\" THEN 4 "
+                  "WHEN tranche=\"[20-25[\" THEN 5 "
+                  "WHEN tranche=\"[25-30[\" THEN 6 "
+                  "WHEN tranche=\"[30-35[\" THEN 7 "
+                  "WHEN tranche=\"[35-40[\" THEN 8 "
+                  "WHEN tranche=\"[40-45[\" THEN 9 "
+                  "WHEN tranche=\"[45-50[\" THEN 10 "
+                  "WHEN tranche=\"[50-55[\" THEN 11 "
+                  "WHEN tranche=\"[55-60[\" THEN 12 "
+                  "WHEN tranche=\"[60-65[\" THEN 13 "
+                  "WHEN tranche=\"[65-70[\" THEN 14 "
+                  "WHEN tranche=\"[70-75[\" THEN 15 "
+                  "WHEN tranche=\"[75-80[\" THEN 16 "
+                  "WHEN tranche=\"[80-85[\" THEN 17 "
+                  "WHEN tranche=\"[85-90[\" THEN 18 "
+                  "WHEN tranche=\"[90-95[\" THEN 19 "
+                  "WHEN tranche=\"[95-100[\" THEN 20 "
+                  "WHEN tranche=\"[100-105[\" THEN 21 "
+                  "WHEN tranche=\"[105-110[\" THEN 22 "
+                  "WHEN tranche=110 THEN 23 "
+                  "END, LIB_ACTE")
 
-nb_actes_=sp1.sql("SELECT COUNT(LIB_ACTE), SEXE, ALD_n, tranche FROM jffinner WHERE LIB_ACTE IS NOT NULL GROUP BY SEXE, tranche, ALD_n ORDER BY tranche")
+effectifs = sp1.sql("SELECT SEXE, ALD_n, tranche, COUNT (DISTINCT beneficiaire_a) AS EFFECTIF FROM jff WHERE SEXE IS NOT NULL AND tranche IS NOT NULL "
+                  "GROUP BY SEXE, tranche, ALD_n "
+                  "ORDER BY SEXE, ALD_n,CASE "
+                  "WHEN tranche=\"[0-5[\" THEN 1 "
+                  "WHEN tranche=\"[5-10[\" THEN 2 "
+                  "WHEN tranche=\"[10-15[\" THEN 3 "
+                  "WHEN tranche=\"[15-20[\" THEN 4 "
+                  "WHEN tranche=\"[20-25[\" THEN 5 "
+                  "WHEN tranche=\"[25-30[\" THEN 6 "
+                  "WHEN tranche=\"[30-35[\" THEN 7 "
+                  "WHEN tranche=\"[35-40[\" THEN 8 "
+                  "WHEN tranche=\"[40-45[\" THEN 9 "
+                  "WHEN tranche=\"[45-50[\" THEN 10 "
+                  "WHEN tranche=\"[50-55[\" THEN 11 "
+                  "WHEN tranche=\"[55-60[\" THEN 12 "
+                  "WHEN tranche=\"[60-65[\" THEN 13 "
+                  "WHEN tranche=\"[65-70[\" THEN 14 "
+                  "WHEN tranche=\"[70-75[\" THEN 15 "
+                  "WHEN tranche=\"[75-80[\" THEN 16 "
+                  "WHEN tranche=\"[80-85[\" THEN 17 "
+                  "WHEN tranche=\"[85-90[\" THEN 18 "
+                  "WHEN tranche=\"[90-95[\" THEN 19 "
+                  "WHEN tranche=\"[95-100[\" THEN 20 "
+                  "WHEN tranche=\"[100-105[\" THEN 21 "
+                  "WHEN tranche=\"[105-110[\" THEN 22 "
+                  "WHEN tranche=110 THEN 23 "
+                  "END") 
 
-effectifs_=sp1.sql("SELECT COUNT (DISTINCT beneficiaire_a), SEXE, ALD_n, tranche FROM jf WHERE beneficiaire_a IS NOT NULL GROUP BY SEXE, tranche, ALD_n") #effectifs des bénéficiaires dans la base démographique (assiettes)
+#freq = freq.withColumn("fc", fy.round(freq["NOMBRE_ACTES"]/freq["EFFECTIF"], 3))
 
-
-##Autres traitements:
+freq.coalesce(1).write.csv('freq_actes.csv', header='true')
 
 #calcul de la différence entre l'âge de l'adhérent et celui du conjoint, enfant,...
 assiette_e=assiette_e.withColumn("diff_age", fy.months_between(fy.col("dnaissance"),fy.first("dnaissance").over(winpartition))/12)
@@ -225,29 +300,33 @@ assiette_e2=assiette_e.withColumn("imm_adherent", fy.first("DATE_IMMATRICULATION
 #nombre d'actes par bénéficiaire
 actes=jfinner2.withColumn("nb_actes", fy.when(fy.col("beneficiairec").isNotNull(), fy.count("beneficiairec").over(benef_partition)))
 
+#######################################################################
 
-#Attribution de l'assiette de cotisation de l'adhérent (si disponible) aux observations manquantes 
+#Traitement de la variable ASSIETTE_COTISATION
 base_assiette2=base_assiette2.withColumn("assiette_adherent", fy.first("ASSIETTE_COTISATION").over(winpartition))
 
 base_assiette2=base_assiette2.withColumn("assiette_corr", fy.when(fy.col("ASSIETTE_COTISATION")==0, fy.col("assiette_adherent"))
                                              .otherwise(fy.col("ASSIETTE_COTISATION")))
 
-base_assiette2.select("ASSIETTE_COTISATION", "beneficiaire_a", "type_beneficiaire", "dnaissance").where(fy.col("ASSIETTE_COTISATION") < 0).show()
-
-
-#nombre d'observations null par colonne
+#observations null
 for col in jff.columns:
     print("La colonne " + col + " contient " + str(jff.filter(jff[col].isNull()).count())+ " observations manquantes\n")
 
-##Exemple régression logistique (SEXE ~ TRANCHE_ASSIETTE + ALD_n 
 
-#On travaille avec la base jfinner (jointure INNER JOIN) qui ne contient pas d'observations manquantes
-jfinner3=jfinner2.drop("PRESCRIPTEUR", "Employeur", "numdossier", "secteur_soins", "mode_paiement")
+base_assiette2.count() #7497186
+base_assiette2.na.drop(how="all").count() #7497148
 
-#On choisit uniquement les adhérents pour cette régression, étant donné que l'assiette de cotisation est la même pour les autres membres du même ménage.
-jfinner4=jfinner3.filter(fy.col("type_beneficiaire")=="Adhérent")
+#Logistic Regression (SEXE ~ ASSIETTE_COTISATION + ALD_n + LIB_ACTE 
 
-t1=jfinner4.selectExpr("SEXE", "ALD_n",
+#                     age ~ ALD_n+ ASSIETTE_COTISATION+ type_benef/adherent+ LIB_ACTE)
+
+#mod=jffinner.select(fy.col("LIB_ACTE").alias("liba")).distinct().where(fy.col("LIB_ACTE").isNotNull())
+#jmod=jffinner.join(fy.broadcast(mod), jffinner.LIB_ACTE==mod.liba, "full")
+#mod=[mod[c][0] for c in range(0, len(mod))]
+
+jfinner3=jfinner2_a.drop("PRESCRIPTEUR", "Employeur", "numdossier", "secteur_soins", "mode_paiement")
+
+t1=jfinner3.selectExpr("SEXE", "ALD_n",
 "CASE "
 "WHEN ASSIETTE_COTISATION = 0  THEN \"0\" "
 "WHEN ASSIETTE_COTISATION < 5000 AND ASSIETTE_COTISATION > 0  THEN \"]0-5000[\" "
@@ -271,10 +350,52 @@ t1=jfinner4.selectExpr("SEXE", "ALD_n",
 "END "
 "AS tranche_assiette")
 
-t1=t1.limit(5000)
-cols=t1.columns
+t1=jfinner3.select("beneficiaire_a","age", "ASSIETTE_COTISATION", "ALD_n", "RANG").distinct()
 
-#Recodage des variables catégoriques ALD/nonALD et tranche_assiette
+t1=t1.dropDuplicates()
+t1=t1.drop("beneficiaire_a")
+
+t1.describe().toPandas().transpose()
+
+
+cols=t1.columns
+#Régression linéaire : Age ~ ASSIETTE_COTISATION + RANG + ALD_n
+
+var_numeriques= ['age', 'ASSIETTE_COTISATION']
+ech = t1.select(var_numeriques).sample(False, 0.8).toPandas()
+axs = pd.plotting.scatter_matrix(ech, figsize=(10, 10))
+n = len(ech.columns)
+for i in range(n):
+    v = axs[i, 0]
+    v.yaxis.label.set_rotation(0)
+    v.yaxis.label.set_ha('right')
+    v.set_yticks(())
+    h = axs[n-1, i]
+    h.xaxis.label.set_rotation(90)
+    h.set_xticks(())
+
+plt.show()
+
+vectorAssembler = VectorAssembler(inputCols = ['ASSIETTE_COTISATION', 'ALD_n', 'RANG'], outputCol = 'features')
+t1_df = vectorAssembler.transform(t1)
+t1_df = t1_df.select(['features', 'age'])
+t1_df.show(3)
+
+splits = t1_df.randomSplit([0.7, 0.3])
+train_df = splits[0]
+test_df = splits[1]
+
+lr = LinearRegression(featuresCol = 'features', labelCol='age', maxIter=10, regParam=0.3, elasticNetParam=0.8)
+lr_model = lr.fit(train_df)
+print("Les coefficients sont: " + str(lr_model.coefficients))
+print("La constante est : " + str(lr_model.intercept))
+
+qualite = lr_model.summary
+print("RMSE: %f" % qualite.rootMeanSquaredError)
+print("r2: %f" % qualite.r2)
+
+###
+
 
 categoricalColumns = ['ALD_n', 'tranche_assiette']
 stages = []
@@ -282,9 +403,6 @@ for categoricalCol in categoricalColumns:
     stringIndexer = StringIndexer().setInputCol(categoricalCol).setOutputCol(categoricalCol + 'Index')
     encoder = OneHotEncoder(inputCols=[stringIndexer.getOutputCol()], outputCols=[categoricalCol + "classVec"])
     stages += [stringIndexer, encoder]
-
-#Recodage de la variable dépendante SEXE
-
 label_stringIdx = StringIndexer().setInputCol("SEXE").setOutputCol("SEXE_label")
 stages += [label_stringIdx]
 numericCols = []
@@ -292,7 +410,6 @@ assemblerInputs = [c + "classVec" for c in categoricalColumns] + numericCols
 assembler = VectorAssembler(inputCols=assemblerInputs, outputCol="features")
 stages += [assembler]
 
-#Création du pipeline (ensemble de toutes les étapes précédentes du traitement)
 pipeline = pyml.Pipeline(stages = stages)
 pipelineModel = pipeline.fit(t1)
 t1 = pipelineModel.transform(t1)
@@ -300,10 +417,9 @@ selectedCols = ['SEXE_label', 'features'] + cols
 df = t1.select(selectedCols)
 df.printSchema()
 
-#Partitionnement des données en partie pour apprentissage et partie pour test
 train, test = df.randomSplit([0.7, 0.3], seed = 2018)
-print("Nombre d'observations (apprentissage): " + str(train.count()))
-print("Nombre d'observations (test): " + str(test.count()))
+print("Training Dataset Count: " + str(train.count()))
+print("Test Dataset Count: " + str(test.count()))
 
 lr = LogisticRegression(featuresCol = 'features', labelCol = 'SEXE_label', maxIter=10)
 lrModel = lr.fit(train)
@@ -337,4 +453,111 @@ predictions=predictions.withColumnRenamed("SEXE_label", "label")
 #evaluating the model 
 evaluator = BinaryClassificationEvaluator()
 print('Test Area Under ROC', evaluator.evaluate(predictions))
+
+jfinner2.stat.corr("assiette_cotisation2","age")
+
+#IterativeImputer (sklearn):
+# with different estimators
+t1.na.fill(value=np.nan)
+
+N_SPLITS = 5
+
+br_estimator = BayesianRidge()
+
+y_missing=t1.select("age").toPandas()
+x_missing=t1.drop("age").toPandas()
+
+score_simple_imputer = pd.DataFrame()
+for strategy in ("mean", "median"):
+    estimator = make_pipeline(
+        SimpleImputer(missing_values=np.nan, strategy=strategy), br_estimator
+    )
+    score_simple_imputer[strategy] = cross_val_score(
+        estimator, x_missing, y_missing.values.ravel(), scoring="neg_mean_squared_error", cv=N_SPLITS
+    )
+
+estimators = [
+    BayesianRidge(),
+    RandomForestRegressor(
+        # We tuned the hyperparameters of the RandomForestRegressor to get a good
+        # enough predictive performance for a restricted execution time.
+        n_estimators=4,
+        max_depth=10,
+        bootstrap=True,
+        max_samples=0.5,
+        n_jobs=2,
+        random_state=0,
+    ),
+    make_pipeline(
+        Nystroem(kernel="polynomial", degree=2, random_state=0), Ridge(alpha=1e3)
+    ),
+    KNeighborsRegressor(n_neighbors=15),
+]
+score_iterative_imputer = pd.DataFrame()
+
+tolerances = (1e-3, 1e-1, 1e-1, 1e-2)
+for impute_estimator, tol in zip(estimators, tolerances):
+    estimator = make_pipeline(
+        IterativeImputer(
+            random_state=0, estimator=impute_estimator, max_iter=25, tol=tol
+        ),
+        br_estimator,
+    )
+    score_iterative_imputer[impute_estimator.__class__.__name__] = cross_val_score(
+        estimator, x_missing, y_missing.values.ravel(), scoring="neg_mean_squared_error", cv=N_SPLITS
+    )
+
+scores = pd.concat(
+    [score_simple_imputer, score_iterative_imputer],
+    keys=["SimpleImputer", "IterativeImputer"],
+    axis=1,
+)
+
+fig, ax = plt.subplots(figsize=(13, 6))
+means = -scores.mean()
+errors = scores.std()
+means.plot.barh(xerr=errors, ax=ax)
+ax.set_title("Results with Different Imputation Methods")
+ax.set_xlabel("MSE (smaller is better)")
+ax.set_yticks(np.arange(means.shape[0]))
+ax.set_yticklabels([" w/ ".join(label) for label in means.index.tolist()])
+plt.tight_layout(pad=1)
+plt.show()
+
+########################################################################################################################
+base_assiette2.createOrReplaceTempView("dfview")
+a=sp1.sql("SELECT VILLE, COUNT (DISTINCT beneficiaire_a) AS N FROM dfview GROUP BY VILLE ORDER BY N DESC").limit(15)
+
+#aa=a.toPandas() : trop lent, c'est possible d'optimiser
+
+#méthode optimisée pour convertir des df spark de petite taille en df pandas:
+o=a.collect()
+#>>> o[0].__dict__
+#{'__fields__': ['VILLE', 'N']}
+cols = a.columns
+
+df=pd.DataFrame()
+for i in range (len(cols)):
+    df.insert(i,cols[i], [ele.__getattr__(cols[i]) for ele in o]) #__getattr__ est prédéfinie pour les objets Row dans le code source pyspark 
+df
+
+plt.rcParams.update({'font.size' : 8})
+plt.bar(df["VILLE"].tolist(),df["N"].tolist())
+plt.xlabel("Villes", fontsize=10)
+plt.ylabel("Effectif", fontsize=10)
+plt.title("Effectifs des bénéficiaires par ville", color="red", fontsize=12)
+plt.show()
+
+i=False
+p="{}"
+p.format(i) #return the following string : "False" !!
+
+
+#################################################################
+jff=jff.dropDuplicates()
+jff.filter( (fy.col("RANG").isNotNull()) & (fy.col("ASSIETTE_COTISATION").isNull()) ).count()
+
+##
+
+
 
