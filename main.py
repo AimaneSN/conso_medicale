@@ -5,8 +5,6 @@ findspark.init()
 import pyspark
 import openpyxl
 import os
-
-
 import colnames
 
 #import append_excel
@@ -17,15 +15,12 @@ from pyspark.context import SparkContext
 from joblibspark import register_spark
 import pyspark.pandas as ps
 import unidecode #unicode to ASCII
-
 import  pyspark.sql.functions  as fy
+
 import pandas as pd
 import matplotlib.pyplot as plt
-#from tkinter import *
-
 import numpy as np
 import re as re
-#from pandas_profiling import ProfileReport
 import inspect
 import sys
 import gc
@@ -97,7 +92,7 @@ def get_file(filepath : str, filesep : str):
         print("Erreur, le programme ne peut pas trouver le schéma")
         return -1
 
-###Importation des bases (conso2019 et assiettes2019)
+#Importation des bases de données
 
 base_conso = get_file(conso2019_path, ";")
 base_assiette = get_file(assiettes2019_path, ";")
@@ -111,7 +106,10 @@ base_inner = get_file(base_inner_path, ",")
 #basen_assiette=get_schema(assiettes2019n_path)
 #basen_ald=get_schema(aldn_path)
 
-assiette_id = {colnames.ID_BENEFICIAIRE_A : 0,
+
+#Définition des noms des colonnes et leurs indices respectifs
+
+assiette_indices = {colnames.ID_BENEFICIAIRE_A : 0,
                colnames.ID_ADHERENT_A : 1,
                colnames.TYPE_ADHERENT : 3,
                colnames.TYPE_BENEFICIAIRE : 4,
@@ -122,7 +120,7 @@ assiette_id = {colnames.ID_BENEFICIAIRE_A : 0,
                colnames.VILLE : 10,
                colnames.NOMBRE_MOIS : 12} 
 
-conso_id = {colnames.ID_BENEFICIAIRE_C : 1,
+conso_indices = {colnames.ID_BENEFICIAIRE_C : 1,
             colnames.ID_ADHERENT_C : 0,
             colnames.RANG : 2,
             colnames.DATE_DEBUT_SOIN : 5, 
@@ -130,26 +128,28 @@ conso_id = {colnames.ID_BENEFICIAIRE_C : 1,
             colnames.LIBELLE_ACTE : 10,
             colnames.PRIX_UNITAIRE : 13}
 
-ald_id = {colnames.ID_ADHERENT_ALD : 0,
+ald_indices = {colnames.ID_ADHERENT_ALD : 0,
           colnames.ID_BENEFICIAIRE_ALD : 1,
           colnames.RANG_ALD : 2,
           colnames.CODE_ALD_ALC : 3,
           colnames.DATE_DEBUT_ACCORD_ALD : 4,
           colnames.DATE_FIN_ACCORD_ALD : 5}
 
-for i in assiette_id.values():
-    base_assiette = base_assiette.withColumnRenamed(base_assiette.columns[i], list(assiette_id.keys())[list(assiette_id.values()).index(i)])
+#Renommage des colonnes avec les définitions ci-dessus
 
-for i in conso_id.values():
-    base_conso = base_conso.withColumnRenamed(base_conso.columns[i], list(conso_id.keys())[list(conso_id.values()).index(i)])
+for indice_colonne in assiette_indices.values():
+    base_assiette = base_assiette.withColumnRenamed(base_assiette.columns[indice_colonne], list(assiette_indices.keys())[list(assiette_indices.values()).index(indice_colonne)])
 
-for i in ald_id.values():
-    base_ald = base_ald.withColumnRenamed(base_ald.columns[i], list(ald_id.keys())[list(ald_id.values()).index(i)])
+for indice_colonne in conso_indices.values():
+    base_conso = base_conso.withColumnRenamed(base_conso.columns[indice_colonne], list(conso_indices.keys())[list(conso_indices.values()).index(indice_colonne)])
+
+for indice_colonne in ald_indices.values():
+    base_ald = base_ald.withColumnRenamed(base_ald.columns[indice_colonne], list(ald_indices.keys())[list(ald_indices.values()).index(indice_colonne)])
+
+#Conversion vers les types appropriés
 
 base_assiette = base_assiette.withColumn(colnames.DNAISSANCE, fy.to_timestamp(colnames.DNAISSANCE, "yyyy.MM.dd HH:mm:ss"))
 base_assiette = base_assiette.withColumn(colnames.DATE_FIN_DO, fy.when(fy.length(fy.col(colnames.DATE_FIN_DO))>1,fy.to_timestamp(colnames.DATE_FIN_DO, "yyyyMMdd")).otherwise(fy.col(colnames.DATE_FIN_DO))) #date_fin_DO contient des observations égales à 0
-
-#base_assiette=base_assiette.withColumn("DATE_IMMATRICULATION", fy.to_timestamp("DATE_IMMATRICULATION", "yyyy-MM-dd"))
 base_assiette = convert_column(base_assiette, colnames.ASSIETTE_COTISATION, DoubleType())
 base_assiette = convert_column(base_assiette, colnames.ID_BENEFICIAIRE_A, StringType())
 
@@ -160,7 +160,8 @@ base_conso = convert_column(base_conso, colnames.DATE_DEBUT_SOIN, DateType())
 base_ald = convert_column(base_ald, colnames.DATE_DEBUT_ACCORD_ALD, DateType())
 base_ald = convert_column(base_ald, colnames.DATE_FIN_ACCORD_ALD, DateType())
 
-#tranches d'âge (base assiettes)
+#Création des variables AGE et TRANCHE_AGE (dans la base assiettes)
+
 base_assiette = base_assiette.withColumn("age", fy.round(fy.months_between(fy.lit(datetime.datetime(2019,12,31)),
                                                         fy.col(colnames.DNAISSANCE))/fy.lit(12), 2))\
                            .withColumn("age", fy.when(fy.col("age")>110,110).otherwise(fy.col("age"))) 
@@ -230,10 +231,6 @@ assiette_e = base_assiette.limit(85000)
 conso_e = base_conso.limit(85000)
 ald_e = base_ald.limit(85000)
 
-assiette_e=base_assiette
-conso_e=base_conso
-ald_e=base_ald
-
 assiette_conso_e = conso_e.join(assiette_e, conso_e.id_beneficiaire_c==assiette_e.id_beneficiaire_a, "full")
 assiette_conso_ald_e = assiette_conso_e.join(ald_e, assiette_conso_e.id_beneficiaire_a==ald_e.id_beneficiaire_ald, "full")
 
@@ -249,17 +246,6 @@ assiette_conso_ald_e = assiette_conso_ald_e.withColumn("id_beneficiaire_a", fy.w
 fy.col("id_beneficiaire_ald")).otherwise(fy.col("id_beneficiaire_a")))
 
 assiette_conso_ald_e.coalesce(1).write.csv('base_full_join.csv', header='true')
-
-                                  
-jffinner= assiette_conso_ald_e.filter( (fy.col("age").isNotNull()) & (fy.col("rang").isNotNull()) ) #95865 (si taille initiale des bases=80000)
-jffinner.coalesce(1).write.csv('base_inner_join.csv', header='true')
-
-jffinner_a= assiette_conso_ald_e.filter( (fy.col("DATE_IMMATRICULATION").isNotNull()) & (fy.col("rang").isNotNull()) & (fy.col("type_beneficiaire")=="Adhérent") ) #95865 (si taille initiale des bases=80000)
-jfinner2_a=jffinner_a.dropDuplicates()
-jfinner2=jffinner.dropDuplicates() #95067
-jfinner2.createOrReplaceTempView("jffinner")
-
-jfinner2=jfinner2.drop("DATE_ARRIVE", "DATE_SAISIE", "DATE_PAIEMENT", "secteur_soins", "mode_paiement", "CODE_TIERS", "PRESCRIPTEUR", "beneficiairec", "adherent", "beneficiaire", "numdossier", "Employeur")
 
 #Attribution du SEXE 'F' aux bénéficiaires de RANG=3,...,10
 jffp=assiette_conso_ald_e.withColumn("SEXE", fy.when( assiette_conso_ald_e["RANG"].between(3,10), "F").otherwise(assiette_conso_ald_e["SEXE"]))
@@ -344,12 +330,6 @@ base_assiette=base_assiette.withColumn("assiette_adherent", fy.first("assiette_c
 base_assiette=base_assiette.withColumn("assiette_corr", fy.when(fy.col("assiette_cotisation")==0, fy.col("assiette_adherent"))
                                              .otherwise(fy.col("assiette_cotisation")))
 
-
-#Logistic Regression (SEXE ~ ASSIETTE_COTISATION + ALD_n + libelle_acte
-
-#                     age ~ ALD_n+ ASSIETTE_COTISATION+ type_benef/adherent+ libelle_acte)
-
-
 #######################################################################
 
 ####AGE ~ nb_actes + ALD_n (ou ald_alc ou code_garantie) + LIB_ACTE + prix_unitaire
@@ -363,7 +343,7 @@ d1 = base_inner.filter( (fy.col("rang")==1) ).select("id_beneficiaire_a", "SEXE"
 
 d2=bk.setHandleInvalid("keep").transform(d1)
 
-#Création d'un échantillon avec des classes d'âge à effectifs égaux:
+#Il faut que les classes soient équilibrées
 classes=d2.groupBy("tranche_age").count().toPandas()
 tranches=list(classes["tranche_age"])
 d3= sp1.createDataFrame([], schema=d2.schema)
@@ -386,6 +366,17 @@ accuracy = evaluator.evaluate(predictions)
 print("Accuracy = %s" % (accuracy))
 print("Test Error = %s" % (1.0 - accuracy))
 
+#train.cache()
+#####
+nb_max_arbre=20
+for ntree in range(1, nb_max_arbre):
+    rf = RandomForestClassifier(featuresCol = 'features', labelCol = 'tranche_age', numTrees=ntree)
+    rfModel = rf.fit(train)
+    predictions = rfModel.transform(test)
+    evaluator = MulticlassClassificationEvaluator(labelCol="tranche_age", predictionCol="prediction", metricName="accuracy")
+    accuracy = evaluator.evaluate(predictions)
+    error=1-accuracy
+    print("%s arbre => Accuracy %g, Error = %g" % (ntree,accuracy,error))
 ##LR:
 
 lr = LinearRegression(featuresCol = 'features', labelCol='age', maxIter=10, regParam=0.3, elasticNetParam=0.8)
