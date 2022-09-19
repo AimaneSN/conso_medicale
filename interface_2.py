@@ -1,4 +1,4 @@
-''' Code généré par Qt Designer, sera importé comme module dans le script script_interface.py '''
+# Code de l'interface généré par Qt Designer, sera importé comme module dans le script "script_interface.py"
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -35,9 +35,9 @@ class Ui_MainWindow(object):
         self.button_enregistrer.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.button_enregistrer.setObjectName("button_enregistrer")
         self.VL_indices.addWidget(self.button_enregistrer)
-        self.pushButton = QtWidgets.QPushButton(self.layoutWidget)
-        self.pushButton.setObjectName("pushButton")
-        self.VL_indices.addWidget(self.pushButton)
+        self.button_annuler = QtWidgets.QPushButton(self.layoutWidget)
+        self.button_annuler.setObjectName("pushButton")
+        self.VL_indices.addWidget(self.button_annuler)
         self.gridLayout.addLayout(self.VL_indices, 0, 1, 1, 1)
         self.VL_apercu = QtWidgets.QVBoxLayout()
         self.VL_apercu.setObjectName("VL_apercu")
@@ -70,9 +70,9 @@ class Ui_MainWindow(object):
         self.button_ajouter_base = QtWidgets.QPushButton(self.layoutWidget)
         self.button_ajouter_base.setObjectName("button_ajouter_base")
         self.GL_ajouter.addWidget(self.button_ajouter_base, 2, 0, 1, 1)
-        self.pushButton_2 = QtWidgets.QPushButton(self.layoutWidget)
-        self.pushButton_2.setObjectName("pushButton_2")
-        self.GL_ajouter.addWidget(self.pushButton_2, 4, 0, 1, 1)
+        self.button_supprimer = QtWidgets.QPushButton(self.layoutWidget)
+        self.button_supprimer.setObjectName("button_supprimer")
+        self.GL_ajouter.addWidget(self.button_supprimer, 4, 0, 1, 1)
         self.gridLayout.addLayout(self.GL_ajouter, 0, 0, 1, 1)
         MainWindow.setCentralWidget(self.centralwidget)
         self.statusbar = QtWidgets.QStatusBar(MainWindow)
@@ -90,7 +90,7 @@ class Ui_MainWindow(object):
         item = self.variables_table.horizontalHeaderItem(1)
         item.setText(_translate("MainWindow", "Variable"))
         self.button_enregistrer.setText(_translate("MainWindow", "Enregistrer"))
-        self.pushButton.setText(_translate("MainWindow", "Réinitialiser"))
+        self.button_annuler.setText(_translate("MainWindow", "Annuler"))
         self.label_apercu.setText(_translate("MainWindow", "Apercu de la base selectionnee :"))
         self.button_selectionner.setText(_translate("MainWindow", "Sélectionner"))
         item = self.bases_table.horizontalHeaderItem(0)
@@ -100,5 +100,5 @@ class Ui_MainWindow(object):
         item = self.bases_table.horizontalHeaderItem(2)
         item.setText(_translate("MainWindow", "Type de la base"))
         self.button_ajouter_base.setText(_translate("MainWindow", "Ajouter une base"))
-        self.pushButton_2.setText(_translate("MainWindow", "Terminer"))
+        self.button_supprimer.setText(_translate("MainWindow", "Supprimer"))
 
