@@ -12,7 +12,7 @@ LABEL_BASE_ASSIETTE = "DEMOGRAPHIQUE"
 LABEL_BASE_CONSO = "CONSO"
 LABEL_BASE_ALD =  "ALD/ALC"
 
-from interface_2 import Ui_MainWindow
+from interface_2 import Ui_MainWindow #Importation de l'interface créée sous Qt Designer
 
 class MyTableModel(QtCore.QAbstractTableModel):
     def __init__(self, data=[[]], parent=None):
