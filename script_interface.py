@@ -14,7 +14,9 @@ LABEL_BASE_ALD =  "ALD/ALC"
 
 from interface_2 import Ui_MainWindow #Importation de l'interface créée sous Qt Designer
 
-class MyTableModel(QtCore.QAbstractTableModel):
+class MyTableModel(QtCore.QAbstractTableModel): 
+    #Classe pour l'aperçu des bases de données ajoutées
+    
     def __init__(self, data=[[]], parent=None):
         super().__init__(parent)
         self.data = data
@@ -39,7 +41,8 @@ class MyTableModel(QtCore.QAbstractTableModel):
             return str(self.data[row][col])
 
 class base_table_widgets(QtWidgets.QWidget):
-
+    #Classe pour le remplissage de la table des bases de données ajoutées
+    
     def __init__(self, table, rowPos, colPos, cell_text, bttn_group, parent=None):
         super(base_table_widgets,self).__init__(parent)
 
@@ -57,7 +60,8 @@ class base_table_widgets(QtWidgets.QWidget):
 
 
 class MainWindow_(QtWidgets.QMainWindow):
-
+    #Classe de la fenêtre principale de l'interface
+    
     def __init__(self):
         super(MainWindow_, self).__init__()
 
@@ -70,6 +74,7 @@ class MainWindow_(QtWidgets.QMainWindow):
 
         def enregistrer():
             #définit le comportement du bouton "Enregistrer"
+            
             nrow = self.ui.variables_table.rowCount()
             cmb = [self.ui.variables_table.cellWidget(i,1) for i in range(0, nrow)] #Liste des combobox (listes déroulantes) de la colonne des variables
             cmb_texts_ = [widget.currentText() for widget in cmb] #Récupère tous les choix des listes déroulantes
