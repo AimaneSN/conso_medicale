@@ -1,4 +1,3 @@
-from venv import EnvBuilder
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 import sys 
@@ -12,11 +11,9 @@ LABEL_BASE_ASSIETTE = "DEMOGRAPHIQUE"
 LABEL_BASE_CONSO = "CONSO"
 LABEL_BASE_ALD =  "ALD/ALC"
 
-from interface_2 import Ui_MainWindow #Importation de l'interface créée sous Qt Designer
+from interface_2 import Ui_MainWindow #Importation de l'interface créée avec Qt Designer
 
-class MyTableModel(QtCore.QAbstractTableModel): 
-    #Classe pour l'aperçu des bases de données ajoutées
-    
+class MyTableModel(QtCore.QAbstractTableModel):
     def __init__(self, data=[[]], parent=None):
         super().__init__(parent)
         self.data = data
@@ -29,7 +26,10 @@ class MyTableModel(QtCore.QAbstractTableModel):
                 return "Ligne " + str(section)
 
     def columnCount(self, parent=None):
-        return len(self.data[0])
+        if len(self.data)>0:
+            return len(self.data[0])
+        else:
+            return 0
 
     def rowCount(self, parent=None):
         return len(self.data)
@@ -41,8 +41,7 @@ class MyTableModel(QtCore.QAbstractTableModel):
             return str(self.data[row][col])
 
 class base_table_widgets(QtWidgets.QWidget):
-    #Classe pour le remplissage de la table des bases de données ajoutées
-    
+
     def __init__(self, table, rowPos, colPos, cell_text, bttn_group, parent=None):
         super(base_table_widgets,self).__init__(parent)
 
@@ -60,8 +59,7 @@ class base_table_widgets(QtWidgets.QWidget):
 
 
 class MainWindow_(QtWidgets.QMainWindow):
-    #Classe de la fenêtre principale de l'interface
-    
+
     def __init__(self):
         super(MainWindow_, self).__init__()
 
@@ -73,7 +71,6 @@ class MainWindow_(QtWidgets.QMainWindow):
         bttn_group = QtWidgets.QButtonGroup()
 
         def enregistrer():
-            #définit le comportement du bouton "Enregistrer"
             
             nrow = self.ui.variables_table.rowCount()
             cmb = [self.ui.variables_table.cellWidget(i,1) for i in range(0, nrow)] #Liste des combobox (listes déroulantes) de la colonne des variables
@@ -102,7 +99,7 @@ class MainWindow_(QtWidgets.QMainWindow):
             elif (label_base == LABEL_BASE_ALD):
                 dict = coldict.ald_indices
 
-            #Enregistrement des indices choisis
+            #Affecter les indices
 
             if (len(dict) == len(cmb_texts)): #Vérifie que toutes les variables sont affectées à une colonne:
                     for i, ele in enumerate(cmb_texts_):
@@ -111,24 +108,27 @@ class MainWindow_(QtWidgets.QMainWindow):
                     d_dict[label_base] = dict #Enregistre le dictionnaire des indices dans le dictionnaire d_dict
         
             elif (len(dict) > len(cmb_texts)):
-                showdialog("Vous n'avez pas rentré toutes les colonnes. Veuillez réessayer", "Erreur")
+                showdialog("Vous n'avez pas affecté toutes les variables à une colonne. Veuillez réessayer", "Erreur")
                 return
             
             confirmation_enregistrer = showdialog("Etes-vous sur de vouloir enregistrer ce choix ?", "Enregistrement")
             if not confirmation_enregistrer:
                 return
             
+            self.ui.bases_table.setItem(rowPos, 1, QtWidgets.QTableWidgetItem("Enregistré ( "+label_base+" )"))
+
             self.ui.variables_table.setRowCount(0)
             self.ui.button_enregistrer.setEnabled(False)
             self.ui.button_annuler.setEnabled(False)
 
-            showdialog (str(dict) + "\n"+ str(d_dict), "resultat")  
+            showdialog (str(d_dict), "resultat")  
 
             enable_upper_left(True)
         
         def showdialog(text : str, title : str):
-            #Fonction générique pour l'affichage de boîtes de dialogue
-            
+
+            #Fonction générique pour l'affichage de boîtes de dialogues
+
             msg = QtWidgets.QMessageBox()
             msg.setText(text)
             msg.setWindowTitle(title)
@@ -139,20 +139,21 @@ class MainWindow_(QtWidgets.QMainWindow):
             return False
 
         def ajouter_base():
-            #définit le comportement du bouton "Ajouter une base"
-            
+
+            #Ouverture d'une boîte de dialogue de fichier (File Dialog) permettant à l'utilisateur de choisir la base, on obtient ainsi le chemin absolu de la base
+
             fname = QtWidgets.QFileDialog.getOpenFileName(self.ui.centralwidget, 'Selectionnez le fichier a importer')
             if (fname[0] == ''):
                 return
 
-            nrow = self.ui.bases_table.rowCount()
-
             #Vérifie si la base n'a pas été déjà ajoutée
+
+            nrow = self.ui.bases_table.rowCount()
             if nrow > 0:
                 
                 paths = [self.ui.bases_table.item(i,0).text() for i in range(0, nrow)] #liste des chemins déjà ajoutés par l'utilisateur
 
-                if fname[0] in paths: #si le chemin qu'on vient d'ajouter appartient déjà à la liste
+                if fname[0] in paths: #si le chemin qu'on vient d'ajouter appartient déjà à la liste "paths"
                     dial = showdialog("Vous avez déjà ajouté ce fichier. Êtes-vous sûr de vouloir continuer ?", "Erreur")
                     if not dial: #L'utilisateur a cliqué sur le bouton Annuler/Cancel
                         return
@@ -165,16 +166,20 @@ class MainWindow_(QtWidgets.QMainWindow):
             self.ui.bases_table.setItem(rowPos, 1, QtWidgets.QTableWidgetItem("Non sélectionné"))
 
             #Ajout de la liste déroulante (pour le choix du type de la base)
+
             self.combobox_base_choisie = QtWidgets.QComboBox()
             self.combobox_base_choisie.addItems([" ", LABEL_BASE_ASSIETTE, LABEL_BASE_CONSO, LABEL_BASE_ALD])
             self.ui.bases_table.setCellWidget(rowPos, 2, self.combobox_base_choisie)
+
+            #Déverrouillage des boutons sélectionner et supprimer
 
             self.ui.button_selectionner.setEnabled(True) 
             self.ui.button_supprimer.setEnabled(True)
 
         def selectionner():
-            #définit le comportement du bouton "Sélectionner", celui-ci ne fait rien tant que l'utilisateur n'aura pas ajouté, coché une base et choisi son type
-            
+
+            #cette fonction définit ce que fait le programme quand l'utilisateur clique sur le bouton "Sélectionner"
+
             rowCount = self.ui.bases_table.rowCount()
             if (rowCount > 0): #vérifie que l'utilisateur a ajouté au moins une base, sinon ne fait rien
             
@@ -185,11 +190,18 @@ class MainWindow_(QtWidgets.QMainWindow):
 
                 if (chkId != -1) and (combo_texts[chkId] != " "): # Si l'utilisateur a coché une base ET choisi le type de la base, alors :
 
+                    selectedState = self.ui.bases_table.item(chkId, 1).text()
+                    if "Enregistré" in selectedState:
+                        confirmation_modifier = showdialog("La base sélectionnée a déjà été enregistrée. Etes-vous sur de vouloir continuer ?", "Confirmation")
+                        if not confirmation_modifier:
+                            return
+                        #Montrer les indices déjà saisis
+                     
                     #Modification de l'état de la base choisie de "Non sélectionné" à "Sélectionné"
                     for i in range(0, self.ui.bases_table.rowCount()):
                         self.ui.bases_table.setItem(i, 1, QtWidgets.QTableWidgetItem("Non sélectionné")) ## Mettre l'état de toutes les bases en "Non sélectionné"
 
-                    selectedPath=self.ui.bases_table.item(chkId,0).text()
+                    selectedPath=self.ui.bases_table.item(chkId, 0).text()
                     self.ui.bases_table.setItem(chkId, 1, QtWidgets.QTableWidgetItem("Sélectionné"))  ## Mettre l'état de la base choisie en "Sélectionné"
 
                     #Création d'un aperçu de la base sélectionnée
@@ -225,8 +237,7 @@ class MainWindow_(QtWidgets.QMainWindow):
 
                     self.ui.button_enregistrer.setEnabled(True)
                     self.ui.button_annuler.setEnabled(True)
-                    enable_upper_left(False)
-                        
+                    enable_upper_left(False)                        
     
                 elif (chkId != -1) and (combo_texts[chkId]  == " "): # L'utilisateur a coché une base sans avoir choisi son type
                     showdialog ("Veuillez choisir le type de la base que vous avez cochée", "Erreur")
@@ -234,18 +245,35 @@ class MainWindow_(QtWidgets.QMainWindow):
                     showdialog ("Veuillez cocher une base", "Erreur")
         
         def annuler():
-            #définit le comportement du bouton "Annuler"
-            
+
+            #cette fonction définit ce que fait le programme quand l'utilisateur clique sur le bouton "Annuler"
+
             confirmation_annuler = showdialog("Etes-vous sur de vouloir annuler l'operation? Les variables saisies seront perdues", "Confirmation")
             if not confirmation_annuler:
                 return
             
+            self.ui.variables_table.setRowCount(0)
+
+            #Passage de l'état "Sélectionné" à l'état "Non sélectionné"
+            nrow_ = self.ui.bases_table.rowCount()
+            etats = [self.ui.bases_table.item(i,1).text() for i in range(0, nrow_)]
+            rowPos = etats.index("Sélectionné")
+
+            self.ui.bases_table.setItem(rowPos, 1, QtWidgets.QTableWidgetItem("Non sélectionné"))
+
+            #Suppression de l'aperçu de la table
+            empty_model = MyTableModel([])
+            self.ui.table_apercu.setModel(empty_model)
+
+            self.ui.button_enregistrer.setEnabled(False)
+            self.ui.button_annuler.setEnabled(False)
             enable_upper_left(True)
 
         def supprimer():
-            #définit le comportement du bouton "Supprimer"
             
+            #Vérifier que l'utilisateur a coché une base à supprimer
             chkId = bttn_group.checkedId()
+
             if chkId == -1:
                 showdialog("Aucune base à supprimer n'a été cochée", "Erreur")
                 return
@@ -257,12 +285,11 @@ class MainWindow_(QtWidgets.QMainWindow):
             self.ui.bases_table.removeRow(chkId)
 
             nrow = self.ui.bases_table.rowCount()
-            if (nrow ==0):
+            if (nrow ==0): #Les boutons "supprimer" et "sélectionner" sont verrouillés quand il n'y a plus de ligne à supprimer/sélectionner
                 self.ui.button_supprimer.setEnabled(False)
                 self.ui.button_selectionner.setEnabled(False)
 
         def enable_upper_left(State : bool):
-            #Permet l'activation/la désactivation de la partie en haut à gauche de l'interface
             
             self.ui.button_selectionner.setEnabled(State)
             self.ui.button_ajouter_base.setEnabled(State)
