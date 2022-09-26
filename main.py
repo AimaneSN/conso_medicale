@@ -221,6 +221,7 @@ effectifs = sp1.sql("SELECT sexe, ALD_n, tranche, COUNT (DISTINCT id_beneficiair
 
 #######################################################################
   
+#Importation de la base complète (full join et inner join), on se sert de la base inner join pour estimer les modèles
 
 base_full_path = "/home/aimane/Documents/BDDCNSS/base_full_join_.csv"
 base_inner_path = "/home/aimane/Documents/BDDCNSS/base_inner_join_.csv"
@@ -228,13 +229,13 @@ base_inner_path = "/home/aimane/Documents/BDDCNSS/base_inner_join_.csv"
 base_full = readfile.get_file(base_full_path, ",", sp1)
 base_inner = readfile.get_file(base_inner_path, ",", sp1)
 
+#Echantillon de la base 
 bi = base_inner.drop("dnaissance").sample(0.008).toPandas()
 
+#Sélection des actes médicaux dont l'effectif est supérieur à 50
 l1 = bi.groupby('libelle_acte').size().sort_values(ascending=False) 
-
 actes1 = list(l1[l1>50].index) #Actes médicaux pour lesquels l'effectif des bénéficiaires est supérieur à 50
 
-actes1 = actes1[0:12]
 
 bi_ = bi[bi["libelle_acte"].isin(actes1)]
 bi_ = bi_[["id_beneficiaire_a", "sexe", "age", "libelle_acte", "ALD_n", "code_ald_alc", "nb_actes"]].drop_duplicates().drop(columns = ["id_beneficiaire_a"])
@@ -242,27 +243,13 @@ bi_ = bi_[["id_beneficiaire_a", "sexe", "age", "libelle_acte", "ALD_n", "code_al
 
 bi_["code_ald_alc"][bi_["code_ald_alc"].isnull()] = "Aucun"
 
+#Création des dummy variable (prennent les valeurs 1 ou 0 pour chaque catégorie)
 bi__ = pd.concat([bi_, pd.get_dummies(bi_["libelle_acte"], drop_first = True)], axis = 1).drop(columns = ["libelle_acte"])
 bi__ = pd.concat([bi_, pd.get_dummies(bi_["libelle_acte"], drop_first = True), pd.get_dummies(bi_["code_ald_alc"], drop_first = True)], axis = 1).drop(columns = ["libelle_acte", "code_ald_alc"])
 
-y = bi__[["sexe"]]
-
-enc_sx = OrdinalEncoder()
-enc_sx.fit(y)      
-y = enc_sx.transform(y)
-
 ya = bi__[["age"]]
 
-bi__[["sexe"]] = y
-
-enc_lb = OrdinalEncoder()
-enc_lb.fit(bi_[["libelle_acte"]])
-bi_[["libelle_acte"]] = enc_lb.transform(bi_[["libelle_acte"]])
-
-#X = bi__.drop(columns = ["sexe"]).reset_index().drop(columns = ["index"])
 X = bi__.drop(columns = ["age", "sexe"]).reset_index().drop(columns = ["index"])
-
-X_b = X
 
 X = sm.add_constant(X)
 X_train, X_test, Y_train, Y_test = train_test_split(X.reset_index().drop(columns = ["index"]), ya.reset_index().drop(columns = ["index"]), test_size = 0.30)
