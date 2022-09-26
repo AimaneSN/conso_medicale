@@ -267,10 +267,6 @@ X_b = X
 X = sm.add_constant(X)
 X_train, X_test, Y_train, Y_test = train_test_split(X.reset_index().drop(columns = ["index"]), ya.reset_index().drop(columns = ["index"]), test_size = 0.30)
 
-glm_binom = sm.GLM(Y_train, X_train, family=sm.families.Binomial())
-res = glm_binom.fit()
-res.summary()
-
 glm_a = sm.OLS(Y_train, X_train.drop(columns = ["ALD_n"]) )
 res = glm_a.fit()
 sum1 = res.summary()
