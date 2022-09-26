@@ -264,3 +264,38 @@ s_file = open("summary1.csv", "w")
 s_file.write(sum1.as_csv())
 s_file.close()
 
+
+
+# #RF(pyspark) : SEXE ~ LIBELLE_ACTE
+# libelles = base_inner.groupBy("libelle_acte").agg(fy.count("libelle_acte").alias("N")).filter(fy.col("N")>100).select("libelle_acte")
+# l_lib = list(libelles.toPandas()['libelle_acte'])
+
+# f_bi = base_inner.filter(fy.col("libelle_acte").isin(l_lib))
+
+# train, test = f_bi.limit(600000).randomSplit([0.7, 0.3], seed = 2022)
+
+# indexed_lib = StringIndexer().setInputCol("libelle_acte").setOutputCol("libelle_id")
+
+# indexed_sexe = StringIndexer().setInputCol("sexe").setOutputCol("sexe_id")
+
+# f_bi_ = indexed_lib.fit(train).transform(train)
+# f_bi_ = indexed_sexe.fit(f_bi_).transform(f_bi_)
+
+# ohe=pyml.feature.OneHotEncoder()
+# libelle_ohe=ohe.setInputCols(['libelle_id']).setOutputCols(['libelle_e'])
+
+# encoder_m=libelle_ohe.fit(f_bi_)
+# f_bi_=encoder_m.transform(f_bi_)
+
+
+# f_bi_ = f_bi_.select("id_beneficiaire_a","sexe", "libelle_acte", "sexe_id", "libelle_id", "libelle_e")
+
+# rf = RandomForestClassifier(featuresCol = 'libelle_e', labelCol = 'sexe_id')
+
+# rfModel = rf.fit(f_bi_)
+# predictions = rfModel.transform(test)
+
+# evaluator = MulticlassClassificationEvaluator(labelCol="sexe_id", predictionCol="prediction")
+# accuracy = evaluator.evaluate(predictions)
+# print("Accuracy = %s" % (accuracy))
+# print("Test Error = %s" % (1.0 - accuracy))
