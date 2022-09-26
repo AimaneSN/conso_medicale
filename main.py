@@ -1,4 +1,7 @@
-from imports import *
+#importation des packages
+
+from imports import * 
+
 
 sp1 = SparkSession.builder.config("spark.driver.memory", "2g").appName('conso_medicale').enableHiveSupport().getOrCreate()
 
@@ -86,17 +89,19 @@ base_assiette = base_assiette.selectExpr("*",
 agep=Window.partitionBy(colnames.TYPE_ADHERENT, colnames.TYPE_BENEFICIAIRE, "SEXE")
 base_assiette=base_assiette.withColumn("age_moyen",fy.mean("age").over(agep))
 
+
+base_assiette = base_assiette.withColumn("type_benef", fy.when(fy.col(colnames.TYPE_BENEFICIAIRE)=="Adhérent", fy.col("type_adherent"))
+                                                         .otherwise(fy.col(colnames.TYPE_BENEFICIAIRE)))
+
 base_assiette=base_assiette.withColumn("age_corr", fy.when((fy.col("age") < 15) & (fy.col("type_benef")=="Actif"), 15) \
                                                         .when((fy.col("age") > 65) & (fy.col("type_benef")=="Actif"), fy.col("age_moyen")) \
                                                         .when((fy.col("age") < 16) & (fy.col("type_benef")=="Veuf"), 16) \
                                                         .when(fy.col("age") > 110, fy.col("age_moyen")) \
                                                         .otherwise(fy.col("age")))
 
+#traitement de la variable assiette_cotisation
 
 winpartition = Window.partitionBy(colnames.ID_ADHERENT_A).orderBy(colnames.TYPE_BENEFICIAIRE)
-benef_partition = Window.partitionBy(colnames.ID_BENEFICIAIRE_A).orderBy(colnames.TYPE_BENEFICIAIRE)
-
-#traitement de la variable assiette_cotisation
 
 base_assiette=base_assiette.withColumn("assiette_adherent", fy.first(colnames.ASSIETTE_COTISATION).over(winpartition))
 
@@ -135,8 +140,8 @@ assiette_conso_ald_e = assiette_conso_ald_e.withColumn("ALD_n", fy.when(((fy.col
                                                                                                                                                             
 , 1).otherwise(0))                                                                                                                                                                                                                                                                                                                                                           
                                                                                                                                                                                                                                                                 
-assiette_conso_ald_e = assiette_conso_ald_e.withColumn("id_beneficiaire_a", fy.when(fy.col("id_beneficiaire_a").isNull() & fy.col("id_beneficiaire_c").isNotNull(), fy.col("id_beneficiaire_c")).when(fy.col("id_beneficiaire_a").isNull() & fy.col("id_beneficiaire_ald").isNotNull(),
-fy.col("id_beneficiaire_ald")).otherwise(fy.col("id_beneficiaire_a")))
+assiette_conso_ald_e = assiette_conso_ald_e.withColumn(colnames.ID_BENEFICIAIRE_A, fy.when(fy.col(colnames.ID_BENEFICIAIRE_A).isNull() & fy.col(colnames.ID_BENEFICIAIRE_C).isNotNull(), fy.col(colnames.ID_BENEFICIAIRE_C)).when(fy.col(colnames.ID_BENEFICIAIRE_A).isNull() & fy.col(colnames.ID_BENEFICIAIRE_ALD).isNotNull(),
+fy.col(colnames.ID_BENEFICIAIRE_ALD)).otherwise(fy.col(colnames.ID_BENEFICIAIRE_A)))
 
 assiette_conso_ald_e.coalesce(1).write.csv('base_full_join.csv', header='true')
 
@@ -144,7 +149,7 @@ assiette_conso_ald_e.coalesce(1).write.csv('base_full_join.csv', header='true')
 
 ##Attribution du SEXE 'F' aux bénéficiaires de RANG=3,...,10
 
-assiette_conso_ald_e=assiette_conso_ald_e.withColumn("SEXE", fy.when( assiette_conso_ald_e["RANG"].between(3,10), "F").otherwise(assiette_conso_ald_e["SEXE"]))
+assiette_conso_ald_e=assiette_conso_ald_e.withColumn(colnames.SEXE, fy.when( assiette_conso_ald_e[colnames.RANG].between(3,10), "F").otherwise(assiette_conso_ald_e[colnames.SEXE]))
 
 ##Attribution du sexe opposé de l'adhérent au conjoint (RANG=2) (quand il est disponible) 
 assiette_conso_ald_e=assiette_conso_ald_e.withColumn("SEXE_ad", fy.first(assiette_conso_ald_e["SEXE"]).over(winpartition))
@@ -213,3 +218,66 @@ effectifs = sp1.sql("SELECT sexe, ALD_n, tranche, COUNT (DISTINCT id_beneficiair
                   "WHEN tranche='[105-110[' THEN 22 "
                   "WHEN tranche=110 THEN 23 "
                   "END") 
+
+#######################################################################
+  
+
+base_full_path = "/home/aimane/Documents/BDDCNSS/base_full_join_.csv"
+base_inner_path = "/home/aimane/Documents/BDDCNSS/base_inner_join_.csv"
+
+base_full = readfile.get_file(base_full_path, ",", sp1)
+base_inner = readfile.get_file(base_inner_path, ",", sp1)
+
+bi = base_inner.drop("dnaissance").sample(0.008).toPandas()
+
+l1 = bi.groupby('libelle_acte').size().sort_values(ascending=False) 
+
+actes1 = list(l1[l1>50].index) #Actes médicaux pour lesquels l'effectif des bénéficiaires est supérieur à 50
+
+actes1 = actes1[0:12]
+
+bi_ = bi[bi["libelle_acte"].isin(actes1)]
+bi_ = bi_[["id_beneficiaire_a", "sexe", "age", "libelle_acte", "ALD_n", "code_ald_alc", "nb_actes"]].drop_duplicates().drop(columns = ["id_beneficiaire_a"])
+
+
+bi_["code_ald_alc"][bi_["code_ald_alc"].isnull()] = "Aucun"
+
+bi__ = pd.concat([bi_, pd.get_dummies(bi_["libelle_acte"], drop_first = True)], axis = 1).drop(columns = ["libelle_acte"])
+bi__ = pd.concat([bi_, pd.get_dummies(bi_["libelle_acte"], drop_first = True), pd.get_dummies(bi_["code_ald_alc"], drop_first = True)], axis = 1).drop(columns = ["libelle_acte", "code_ald_alc"])
+
+y = bi__[["sexe"]]
+
+enc_sx = OrdinalEncoder()
+enc_sx.fit(y)      
+y = enc_sx.transform(y)
+
+ya = bi__[["age"]]
+
+bi__[["sexe"]] = y
+
+enc_lb = OrdinalEncoder()
+enc_lb.fit(bi_[["libelle_acte"]])
+bi_[["libelle_acte"]] = enc_lb.transform(bi_[["libelle_acte"]])
+
+#X = bi__.drop(columns = ["sexe"]).reset_index().drop(columns = ["index"])
+X = bi__.drop(columns = ["age", "sexe"]).reset_index().drop(columns = ["index"])
+
+X_b = X
+
+X = sm.add_constant(X)
+X_train, X_test, Y_train, Y_test = train_test_split(X.reset_index().drop(columns = ["index"]), ya.reset_index().drop(columns = ["index"]), test_size = 0.30)
+
+glm_binom = sm.GLM(Y_train, X_train, family=sm.families.Binomial())
+res = glm_binom.fit()
+res.summary()
+
+glm_a = sm.OLS(Y_train, X_train.drop(columns = ["ALD_n"]) )
+res = glm_a.fit()
+sum1 = res.summary()
+
+# Exportation des résultats de la régression
+
+s_file = open("summary1.csv", "w")
+s_file.write(sum1.as_csv())
+s_file.close()
+
