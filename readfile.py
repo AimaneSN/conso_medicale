@@ -54,3 +54,17 @@ def get_data(filepath : str, sep_file : str, rownum : int)
     for row in rows:
         l.append(row.split(sep_file))
     return l
+
+def get_file(filepath : str, filesep : str, sparkses):
+    # input :
+      ## filepath : Chemin du fichier[type:string]
+      ## filesep : Séparateur entre les colonnes [type:string]
+    # output : dataframe Spark ou -1 en cas d'échec
+    try:
+        df=sparkses.read.options(inferSchema=True).option("encoding", "ISO-8859-1").csv(filepath, header=True, sep=filesep)
+        print("schéma trouvé pour le fichier", filepath)
+        return df
+    except:
+        print("Erreur, le programme ne peut pas trouver le schéma pour le fichier", filepath)
+        return -1
+
