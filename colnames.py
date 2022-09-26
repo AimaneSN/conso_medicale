@@ -1,3 +1,7 @@
+#Noms des colonnes (variables), les noms saisis ci-dessus sont les noms par défaut
+
+#Le script va remplacer les noms des variables par ceux-ci
+
 
 #BASE DEMOGRAPHIQUE
 
@@ -9,6 +13,7 @@ DNAISSANCE = "dnaissance"
 SEXE = "sexe"
 ASSIETTE_COTISATION = "assiette_cotisation"
 DATE_FIN_DO = "date_fermeture_droits"
+DATE_IMMATRICULATION = "date_immatriculation"
 NOMBRE_MOIS = "nombre_mois"
 VILLE = "ville"
 
