@@ -1,9 +1,10 @@
 import re as re
 
-''' Fonctions pour la lecture des fichiers '''
-
-def get_firstlines(filepath, n, h):
-    #arguments : chemin du fichier [filepath:string], nombre de lignes à afficher[n:integer], inclure l'en-tête ou non[h=1,0]
+def get_firstlines(filepath, n, h : bool):
+    # input : 
+      ## filepath : chemin du fichier [type:string] 
+      ## n : nombre de lignes à afficher [type:integer]
+      ## h : inclure l'en-tête ou non (True : Inclure l'en-tête, False : Ne pas inclure l'en-tête) [type:bool]
     #output : liste contenant les n premières lignes (type : list)
     file = open(filepath, 'r', encoding="ISO-8859-1")
     firstlines=[]
@@ -11,12 +12,13 @@ def get_firstlines(filepath, n, h):
     for i in range (1,n+2):
         firstlines.append(file.readline().strip('\n'))
     file.close()
-    if h==0:
+    if h==False:
         return firstlines[1:]
     return firstlines[:n+1]
 
 def get_colnames(filepath : str):
-    # arguments : chemin du fichier [filepath: string]
+    # input : 
+      ## filepath :chemin du fichier [type:string]
     # output : liste contenant les noms des variables du fichier et le séparateur (type: list)
     firstline=get_firstlines(filepath, 1,1)
     sep_file="";
@@ -35,8 +37,10 @@ def get_colnames(filepath : str):
     return columns+[sep_file]
 
 def get_col_firstlines(filepath : str, column_name : str, n : int):
-    # arguments : chemin du fichier [filepath : string], nom de la colonne [column_name : string], nombre d'observations à
-    # afficher [n : integer]
+    # input : 
+      ## filepath : chemin du fichier [type:tring] 
+      ## column_name : nom de la colonne [type:string] 
+      ## n : nombre d'observations à afficher [type:integer]
     # output : liste contenant les premières observations de la colonne choisie [lines: list]
     cols=get_colnames(filepath)
     colindex=cols.index(column_name)
@@ -48,12 +52,20 @@ def get_col_firstlines(filepath : str, column_name : str, n : int):
         lines.append(row[colindex])
     return lines
 
-def get_data(filepath : str, sep_file : str, rownum : int)
+def get_data(filepath : str, sep_file : str, rownum : int):
+    # input : 
+      ## filepath : Chemin du fichier[type:string]
+      ## sep_file : Séparateur du fichier[type:string]. Exemple: sep_file=";"
+      ## rownum ; Nombre d'enregistrements(lignes) à récupérer [type:entier]
+    # output : 
+      ## l : liste de listes. Exemple : l[0] est la liste des élèments de la première ligne (l'en-tête).
+    
     rows = get_firstlines(filepath,rownum,1)
     l = []
     for row in rows:
         l.append(row.split(sep_file))
     return l
+
 
 def get_file(filepath : str, filesep : str, sparkses):
     # input :
@@ -67,4 +79,5 @@ def get_file(filepath : str, filesep : str, sparkses):
     except:
         print("Erreur, le programme ne peut pas trouver le schéma pour le fichier", filepath)
         return -1
+
 
