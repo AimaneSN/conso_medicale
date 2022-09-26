@@ -11,6 +11,7 @@ assiette_indices = {colnames.ID_BENEFICIAIRE_A : 0,
                colnames.ASSIETTE_COTISATION : 8,
                colnames.DATE_FIN_DO : 9,
                colnames.VILLE : 10,
+               colnames.DATE_IMMATRICULATION : 11,
                colnames.NOMBRE_MOIS : 12} 
 
 conso_indices = {colnames.ID_BENEFICIAIRE_C : 1,
