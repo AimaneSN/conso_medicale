@@ -14,6 +14,8 @@ LABEL_BASE_ALD =  "ALD/ALC"
 from interface_2 import Ui_MainWindow #Importation de l'interface créée avec Qt Designer
 
 class MyTableModel(QtCore.QAbstractTableModel):
+    
+    #Permet l'aperçu des fichiers importés
     def __init__(self, data=[[]], parent=None):
         super().__init__(parent)
         self.data = data
@@ -41,7 +43,8 @@ class MyTableModel(QtCore.QAbstractTableModel):
             return str(self.data[row][col])
 
 class base_table_widgets(QtWidgets.QWidget):
-
+    
+    #Permet de remplir la table des bases de données
     def __init__(self, table, rowPos, colPos, cell_text, bttn_group, parent=None):
         super(base_table_widgets,self).__init__(parent)
 
@@ -59,7 +62,8 @@ class base_table_widgets(QtWidgets.QWidget):
 
 
 class MainWindow_(QtWidgets.QMainWindow):
-
+    #Fenêtre principale
+    
     def __init__(self):
         super(MainWindow_, self).__init__()
 
@@ -71,6 +75,8 @@ class MainWindow_(QtWidgets.QMainWindow):
         bttn_group = QtWidgets.QButtonGroup()
 
         def enregistrer():
+            
+            #Définit ce que fait le programme quand on clique sur le bouton "Enregistrer"
             
             nrow = self.ui.variables_table.rowCount()
             cmb = [self.ui.variables_table.cellWidget(i,1) for i in range(0, nrow)] #Liste des combobox (listes déroulantes) de la colonne des variables
@@ -139,9 +145,10 @@ class MainWindow_(QtWidgets.QMainWindow):
             return False
 
         def ajouter_base():
-
+            
+            #Définit ce que fait le programme quand on clique sur le bouton "Ajouter une base"
+            
             #Ouverture d'une boîte de dialogue de fichier (File Dialog) permettant à l'utilisateur de choisir la base, on obtient ainsi le chemin absolu de la base
-
             fname = QtWidgets.QFileDialog.getOpenFileName(self.ui.centralwidget, 'Selectionnez le fichier a importer')
             if (fname[0] == ''):
                 return
@@ -177,8 +184,8 @@ class MainWindow_(QtWidgets.QMainWindow):
             self.ui.button_supprimer.setEnabled(True)
 
         def selectionner():
-
-            #cette fonction définit ce que fait le programme quand l'utilisateur clique sur le bouton "Sélectionner"
+            
+            #Définit ce que fait le programme quand l'utilisateur clique sur le bouton "Sélectionner"
 
             rowCount = self.ui.bases_table.rowCount()
             if (rowCount > 0): #vérifie que l'utilisateur a ajouté au moins une base, sinon ne fait rien
@@ -246,7 +253,7 @@ class MainWindow_(QtWidgets.QMainWindow):
         
         def annuler():
 
-            #cette fonction définit ce que fait le programme quand l'utilisateur clique sur le bouton "Annuler"
+            #Définit ce que fait le programme quand on clique sur le bouton "Annuler"
 
             confirmation_annuler = showdialog("Etes-vous sur de vouloir annuler l'operation? Les variables saisies seront perdues", "Confirmation")
             if not confirmation_annuler:
@@ -270,7 +277,7 @@ class MainWindow_(QtWidgets.QMainWindow):
             enable_upper_left(True)
 
         def supprimer():
-            
+    
             #Vérifier que l'utilisateur a coché une base à supprimer
             chkId = bttn_group.checkedId()
 
@@ -290,6 +297,8 @@ class MainWindow_(QtWidgets.QMainWindow):
                 self.ui.button_selectionner.setEnabled(False)
 
         def enable_upper_left(State : bool):
+            
+            #Permet d'activer/désactiver la partie en haut à gauche de l'interface
             
             self.ui.button_selectionner.setEnabled(State)
             self.ui.button_ajouter_base.setEnabled(State)
