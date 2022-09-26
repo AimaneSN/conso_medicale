@@ -220,7 +220,9 @@ effectifs = sp1.sql("SELECT sexe, ALD_n, tranche, COUNT (DISTINCT id_beneficiair
                   "END") 
 
 #######################################################################
-  
+
+#AGE ~ LIBELLE_ACTE + NB_ACTES + CODES_ALD_ALC (Régression linéaire multiple)
+
 #Importation de la base complète (full join et inner join), on se sert de la base inner join pour estimer les modèles
 
 base_full_path = "/home/aimane/Documents/BDDCNSS/base_full_join_.csv"
