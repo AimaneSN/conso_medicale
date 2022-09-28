@@ -4,7 +4,9 @@ import pyspark
 import openpyxl
 import os
 
-os.chdir("/home/aimane/Desktop/pyzo_")
+abspath = os.path.abspath(__file__) #Chemin absolu du script exécuté
+dname = os.path.dirname(abspath) #Chemin du dossier contenant le script
+os.chdir(dname)
 
 import colnames
 import coldict
