@@ -69,9 +69,6 @@ class base_table_widgets(QtWidgets.QWidget):
 
 class MainWindow_(QtWidgets.QMainWindow):
     #Fenêtre principale
-    # dict : {"nom du fichier": [label : str, state : bool]}
-    # state = False pour non enregistré, True pour enregistré.
-    # on récupère 
 
     def __init__(self):
         super(MainWindow_, self).__init__()
