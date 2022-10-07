@@ -6,7 +6,7 @@
 #BASE DEMOGRAPHIQUE
 
 ID_BENEFICIAIRE_A = "id_beneficiaire_a"
-ID_ADHERENT_A = "id_adherent_a "
+ID_ADHERENT_A = "id_adherent_a"
 TYPE_ADHERENT = "type_adherent"
 TYPE_BENEFICIAIRE = "type_beneficiaire"
 DNAISSANCE = "dnaissance"
