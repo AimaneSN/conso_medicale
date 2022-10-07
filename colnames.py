@@ -1,4 +1,4 @@
-#Noms des colonnes (variables), les noms saisis ci-dessus sont les noms par défaut
+#Noms des colonnes (variables), les noms saisis ci-dessous sont les noms par défaut
 
 #Le script va remplacer les noms des variables par ceux-ci
 
