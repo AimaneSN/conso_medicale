@@ -19,7 +19,7 @@ dname = os.path.dirname(abspath) #Chemin du dossier contenant le script
 os.chdir(dname)
 
 from interface_1 import Ui_MainWindow #Importation de l'interface créée avec Qt Designer
-from script_d_modifier import dialog_modifier
+from script_dialog_modifier import dialog_modifier
 from script_dialog_traitement import dialog_traitements
 from script_dialog_modalites import dialog_modalites
 
