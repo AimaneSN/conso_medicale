@@ -39,7 +39,7 @@ class dialog_modalites(QtWidgets.QDialog):
 
         self.uim.button_select_var.clicked.connect(self.selectionner_var)
         self.uim.button_enregistrer_var.clicked.connect(self.enregistrer_var)
-        self.uim.button_terminer_mod.clicked.connect(self.terminer_mod)
+        self.uim.button_terminer_mod.clicked.connect(self.accept)
         self.uim.button_quitter_mod.clicked.connect(self.reject)
         
         self.uim.button_enregistrer_var.setEnabled(False)
@@ -96,14 +96,16 @@ class dialog_modalites(QtWidgets.QDialog):
         self.uim.table_modalites.setRowCount(0)
         self.uim.button_select_var.setEnabled(True)
     
-    def terminer_mod(self):
+    def accept(self):
         #Renommage des modalités dans la base de données choisie
 
         for var in self.dict_mods.keys():
             for mod in self.dict_mods[var].keys():
                 if self.dict_mods[var][mod] != None:
                     self.db = self.db.withColumn(var, F.when(self.db[var] == mod, self.dict_mods[var][mod]).otherwise(self.db[var]))
-    
+
+        super().accept()
+        
     def showdialog(self, text : str, title : str):
         #Fonction générique pour l'affichage de boîtes de dialogues
 
