@@ -54,7 +54,10 @@ medic_types = {colnames.ID_ADHERENT_M : SPARK_STRING,
           colnames.TAUX_REMBOURSEMENT_M :SPARK_INT,
           colnames.PRIX_UNITAIRE_M : SPARK_DOUBLE,
           colnames.CLASSE_THERAPEUTIQUE : SPARK_STRING,
-          colnames.TYPE_MEDICAMENT : SPARK_STRING
+          colnames.TYPE_MEDICAMENT : SPARK_STRING,
+          colnames.MONTANT_REMBOURSE_M : SPARK_DOUBLE,
+          colnames.TYPE_ACTE_M : SPARK_STRING,
+          colnames.CODE_MEDIC : SPARK_STRING
           }
 
 ###Indices des variables pour les bases démographique, conso et ALD/ALC
@@ -103,7 +106,10 @@ medic_indices = {colnames.ID_ADHERENT_M : 0,
           colnames.TAUX_REMBOURSEMENT_M : 5,
           colnames.PRIX_UNITAIRE_M : 6,
           colnames.CLASSE_THERAPEUTIQUE : 7,
-          colnames.TYPE_MEDICAMENT : 4}
+          colnames.TYPE_MEDICAMENT : 4,
+          colnames.MONTANT_REMBOURSE_M : 8,
+          colnames.TYPE_ACTE_M : 9,
+          colnames.CODE_MEDIC : 10}
 
 assiette_indices_ = dict.fromkeys(assiette_indices.keys())
 conso_indices_ = dict.fromkeys(conso_indices.keys())
@@ -157,11 +163,11 @@ sexe_mod = {SEXE_M : "M",
 
 #Modalités pour "type_acte"
 
-TYPE_ACTE_AMBULATOIRE = "AMB"
-TYPE_ACTE_HOSPITALISATION  = "TP"
+TYPE_ACTE_AMBULATOIRE = "Ambulatoire"
+TYPE_ACTE_HOSPITALISATION  = "Hospitalisation"
 
-type_acte_mod = {TYPE_ACTE_AMBULATOIRE : "AMB",
-                 TYPE_ACTE_HOSPITALISATION : "TP"}
+type_acte_mod = {TYPE_ACTE_AMBULATOIRE : "Ambulatoire",
+                 TYPE_ACTE_HOSPITALISATION : "Hospitalisation"}
 
 #Modalités pour "secteur_soin"
 
@@ -171,12 +177,17 @@ SECTEUR_PRIVE = "Privé"
 secteur_soin_mod = {SECTEUR_PUBLIC : "Public",
                     SECTEUR_PRIVE : "Privé"}
 
+#Modalités pour pharmacie:
+
+ACTE_PHARMA = "Pharmacie"
+
 #Dictionnaire de toutes les modalités
 
 vars_mod = {colnames.TYPE_ADHERENT : type_adh_mod,
             colnames.TYPE_BENEFICIAIRE : type_benef_mod,
             colnames.SEXE : sexe_mod,
             colnames.TYPE_ACTE : type_acte_mod,
+            colnames.TYPE_ACTE_M : type_acte_mod,
             colnames.SECTEUR_SOIN : secteur_soin_mod}
 
 #Formats des dates
@@ -224,9 +235,10 @@ STR_distrib_salaires_pensions_moy = "Distribution des salaires et des pensions a
 dict_t_3 = dict.fromkeys([STR_distrib_salaires_pensions_moy])
 
 #Input de la table frequence conso
-STR_freq_conso = "Frequence de consommation par categorie demographique et libelle d'acte"
+STR_freq_conso = "Frequence de consommation par categorie demographique et libelle acte"
+STR_freq_conso_medic = "Frequence de consommation par categorie demographique et libelle medicament"
 
-dict_t_f_c = dict.fromkeys([STR_freq_conso])
+dict_t_f_c = dict.fromkeys([STR_freq_conso, STR_freq_conso_medic])
 
 #Inputs de la table population initiale
 STR_input_effectifs_salaires_actifs = "Effectifs et salaires moyens des actifs cotisants par age et sexe"
@@ -244,3 +256,8 @@ dict_inputs = {STR_table_1_a_s : dict_t_1,
                STR_table_3 : dict_t_3,
                STR_table_freq_conso : dict_t_f_c,
                STR_table_pop_initiale : dict_t_pop_init}
+
+#Matrices de consommation
+
+MATRICE_CONSO = "Matrice de consommations hors pharmacie"
+MATRICE_PHARMA = "Matrice de consommations (pharmacie uniquement)"
