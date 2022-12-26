@@ -56,4 +56,6 @@ TAUX_REMBOURSEMENT_M = "taux_remboursement_m"
 PRIX_UNITAIRE_M = "prix_unitaire_m"
 CLASSE_THERAPEUTIQUE = "classe_therapeutique"
 TYPE_MEDICAMENT = "type_medicament"
-
+MONTANT_REMBOURSE_M = "montant_rembourse_m"
+TYPE_ACTE_M = "type_acte_m"
+CODE_MEDIC = "code_medic"
