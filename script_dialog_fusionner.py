@@ -1,3 +1,4 @@
+#Script dialog fusionner
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 import os
@@ -24,7 +25,6 @@ LABEL_BASE_CONSO = "CONSOMMATIONS"
 LABEL_BASE_ALD =  "ALD/ALC"
 LABEL_BASE_MEDIC = "MEDICAMENTS"
 
-
 from dialog_fusion import Ui_Dialog
 
 class dialog_fusionner(QtWidgets.QDialog):
@@ -35,7 +35,7 @@ class dialog_fusionner(QtWidgets.QDialog):
         self.uif = Ui_Dialog()
         self.uif.setupUi(self)
         self.tuple_df = dict_df # {(base, année d'inventaire) : dataframe spark}
-        #self.dict_df = {str(k) : v for k, v in dict_df.items()}
+
         self.dict_df = {str(k) : k for k in dict_df.keys()}
 
         bases = list(self.dict_df.keys())
@@ -146,13 +146,25 @@ class dialog_fusionner(QtWidgets.QDialog):
         else:
             type_base = 2
 
-        print("Le type de la base est: ", type_base)
+        base_complete, self.nb_manquants = calculs.fusion(df_g, df_d, self.cle_g, self.cle_d, self.vars_d, type_base, self.type_jointure)
+        
+        if type_base == 1 and "is_ALD" in base_complete.columns:
+            base_complete = base_complete.withColumn("is_ALD", F.when(F.col("is_ALD").isNull(), 0).otherwise(F.col("is_ALD")))
 
-        base_complete = calculs.fusion(df_g, df_d, self.cle_g, self.cle_d, self.vars_d, type_base, self.type_jointure)[0]
-
-        self.tuple_df[tuple_g[0] + ", " + str(tuple_g[1]) + "_" + tuple_d[0] + ", " + str(tuple_d[1])] = base_complete
+        if isinstance(tuple_g, tuple) and isinstance(tuple_d, tuple):
+            self.tuple_df["JOINTURE : { " + tuple_g[0] + str(tuple_g[1]) + " AVEC " + tuple_d[0] + ", " + str(tuple_d[1]) + " }"] = base_complete
+        else:
+            self.tuple_df["JOINTURE : { "+ str(tuple_g) + " AVEC " + str(tuple_d) + " }"] = base_complete
 
         print(self.tuple_df)
-        base_complete.show()
 
         super().accept()
+
+    def get_missing(self):
+        return self.nb_manquants
+
+
+
+
+
+        
