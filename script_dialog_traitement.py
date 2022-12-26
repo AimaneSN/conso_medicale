@@ -377,7 +377,7 @@ class dialog_traitements(QtWidgets.QDialog):
         #Obtention de la base source
         source = list(set(self.sources))[0]
 
-        if "_" not in source: #La source n'est pas une base fusionnée
+        if "JOINTURE" not in source: #La source n'est pas une base fusionnée
             source = (source.split(', ')[0], int(source.split(', ')[1]))
         
         base = self.dict_df[source]
@@ -398,16 +398,23 @@ class dialog_traitements(QtWidgets.QDialog):
 
                 if choix == coldict.MATRICE_CONSO:
                     self.df_input, pre, post = operations_inputs.matrice_conso(base, actes_ph)
+                    dict_eff = operations_inputs.effectifs_cat_demo(base)
+                    self.df_input = operations_inputs.freq_conso(self.df_input, dict_eff)
+                
                 elif choix == coldict.MATRICE_PHARMA:
                     self.df_input, pre, post = operations_inputs.matrice_conso_ph(base, actes_ph)
-
+                    dict_eff = operations_inputs.effectifs_cat_demo(base)
+                    self.df_input = operations_inputs.freq_conso(self.df_input, dict_eff)
+                
             else:
                 self.showdialog("Vous n'avez pas choisi la matrice de consommation a calculer. Impossible de continuer.", "Erreur")
                 return
         
         elif self.current_input == coldict.STR_freq_conso_medic:
             self.df_input, pre, post = operations_inputs.matrice_conso_medic(base)
-    
+            dict_eff = operations_inputs.effectifs_cat_demo(base)
+            self.df_input = operations_inputs.freq_conso(self.df_input, dict_eff)
+
         else:
             self.df_input = self.calcul_input(base, **self.params)
 
