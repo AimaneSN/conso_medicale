@@ -19,11 +19,12 @@ dname = os.path.dirname(abspath) #Chemin du dossier contenant le script
 os.chdir(dname)
 
 from interface_1 import Ui_MainWindow #Importation de l'interface créée avec Qt Designer
+
 from script_dialog_modifier import dialog_modifier
 from script_dialog_traitement import dialog_traitements
 from script_dialog_modalites import dialog_modalites
 
-from modalites_dialog import Ui_Dialog
+from dialog_modalites import Ui_Dialog
 
 import coldict
 import readfile
@@ -107,9 +108,9 @@ class MainWindow_(QtWidgets.QMainWindow):
 
         self.d_dict = {} # dictionnaire des indices
         self.d_types = {}
+        self.dict_mod = {}
         self.dict_paths = {} #dictionnaire des chemins, {chemin : [etat, (libellé, année)]}
         self.dict_paths_ = {} #{(libelle, année) : chemin}
-        self.df = []
         self.paths_list = []
 
         self.format_mem = {} # { var: dict d'essais{format, status} }, permet de mémoriser les formats de dates traités 
@@ -210,7 +211,6 @@ class MainWindow_(QtWidgets.QMainWindow):
                         if format.text() != '':
                             coldict.dates_formats_dict[ele] = format.text()
             
-            
             for k, v in self.dict_paths.items():
                 self.dict_paths_[(v[1], year)] = k
                     
@@ -221,18 +221,17 @@ class MainWindow_(QtWidgets.QMainWindow):
             return
         
         #Inviter l'utilisateur à choisir les modalités (via dialog_modalites)
+        
         vars_m = []
         for col in self.dict_indices.keys():
             if col in coldict.vars_mod.keys():
                 vars_m.append(col)
-
+        
         if vars_m != []:
             d_modalite = dialog_modalites(vars_m, selected_path, self.dict_indices)
-            d_modalite.exec()
-            if d_modalite.modchanged == True:
-                self.df = d_modalite.db
-            else:
-                self.df = []
+            E = d_modalite.exec()
+            if (E == d_modalite.Accepted):
+                self.dict_mod[(self.label_base, self.annee)] = d_modalite.db
 
         #Modification de l'état du fichier enregistré. ("Non enregistré" -> "Enregistré")
  
@@ -556,7 +555,7 @@ class MainWindow_(QtWidgets.QMainWindow):
         return self.d_dict
 
     def lancer_calculs(self):
-            d_traitement = dialog_traitements(self.d_dict, self.d_types, self.dict_paths_, self.df)
+            d_traitement = dialog_traitements(self.d_dict, self.d_types, self.dict_paths_, self.dict_mod)
             d_traitement.exec()
 
 if __name__ == '__main__':
