@@ -64,7 +64,7 @@ def age_operations(df, year : int, dormant : bool):
         df = df.withColumn("age_corr", F.when((df.age < 15) & (F.col("type_benef")=="Actif"), 15) \
                                                             .when((df.age > 70) & (df.type_benef == "Actif"), df.age_0) \
                                                             .when((df.age < 16) & (df.type_benef == "Veuf"), 16) \
-                                                            .when(df.age > 110, df.age_0) \
+                                                            .when(df.age >= 110, df.age_0) \
                                                             .otherwise(F.col("age_corr")))
     else :
         sexep = Window.partitionBy(colnames.SEXE)
@@ -106,7 +106,7 @@ def assiette_aberr(df):
     nb_assiette_aberr = df.filter((F.col(colnames.TYPE_BENEFICIAIRE) == "Adhérent") & (F.col(colnames.ASSIETTE_COTISATION) <= 0)).count()
 
     assiette_aberr = {}
-    assiette_aberr["assiette négative ou nulle"] = nb_assiette_aberr
+    assiette_aberr["assiette négative ou nulle (=0)"] = nb_assiette_aberr
 
     return assiette_aberr
 
@@ -178,27 +178,21 @@ def operations_ald(df, annee : int):
 #Operations fusions
 def fusion(df_1, df_2, cle_1 : str, cle_2 : str,  vars_requises : list, type_base : int, type_fusion : str = "left"):
 
-    nb_manquants = dict.fromkeys(vars_requises)
-
     if (cle_1 not in df_1.columns) :
-        text_error = f"{cle_1} n'est pas disponible dans la première base. "
-        return text_error
+        print(f"{cle_1} n'est pas disponible dans la première base. ")
+        return
     elif cle_2 not in df_2.columns :
-        text_error = f"{cle_2} n'est pas disponible dans la deuxième base. "
-        return text_error
-    elif set(vars_requises).issubset(df_1.columns):
-        for var in vars_requises:
-            nb_manquants[var] = 0
-    
-    else:    
+        print(f"{cle_2} n'est pas disponible dans la deuxième base. ")
+        return
 
+    else:    
         vars_requises.append(cle_2)
         df_2 = df_2.select(vars_requises)
         nb_2 = df_2.count()
 
         if nb_2 == 0:
-            text_error = "La deuxième base est vide"
-            return text_error
+            print("La deuxième base est vide")
+            return
         
         df_1 = df_1.join(df_2, df_1[cle_1]== df_2[cle_2], type_fusion)
         
@@ -208,16 +202,15 @@ def fusion(df_1, df_2, cle_1 : str, cle_2 : str,  vars_requises : list, type_bas
 
             nb_1 = df_1.filter(F.col(var).isNotNull()).count()
 
-            for k in nb_manquants.keys():
-                nb_manquants[k] = [nb_2 - nb_1, nb_2, f"{(round((nb_2 - nb_1)/nb_2, 3)*100)} %"]
+            nb_manquants= [nb_2 - nb_1, nb_2, f"{(round((nb_2 - nb_1)/nb_2, 3)*100)} %"] #observations de la base ALD qui ne figurent pas dans DEMO
 
         elif type_base == 2: #(CONSO/MEDIC) + (DEMO+ALD)
-
-            df_nb_1 = df_1.filter(F.col(var).isNull()).groupBy(cle_1).count()
+            
+            nb_0 = df_1.filter(F.col(var).isNull()).count() #Nb d'actes manquants
+            df_nb_1 = df_1.filter(F.col(var).isNull()).groupBy(cle_1).count() #Nb de bénéficiaires manquant
             nb_1 = df_nb_1.count() 
 
-            for k in nb_manquants.keys():
-                nb_manquants[k] = [nb_1, f"{round(nb_1/nb_2, 3)*100} %"]
+            nb_manquants = [nb_0, nb_1, f"{round(nb_1/nb_2, 3)*100} %"]
         
         return df_1, nb_manquants
 
@@ -305,7 +298,7 @@ def traitement_conso(df, colname : str, coltype : str) :
 
     #Traitements prix unitaire
     dict_aberr = {}
-    
+
     N = df.count()
     df = df.filter(F.col(colname).isNotNull())
 
@@ -320,23 +313,32 @@ def traitement_conso(df, colname : str, coltype : str) :
 def calculs_conso(df, l_col : list = [colnames.COEFFICIENT, colnames.QUANTITE, colnames.TAUX_REMBOURSEMENT]):
 
     #Calculs quantite = quantite * coefficient
-    if l_col[0] in df.columns:
+    if colnames.COEFFICIENT in df.columns:
         df = df.withColumn("quantite_calcule", F.when(df[l_col[0]].isNotNull(), df[l_col[1]] * df[l_col[0]]) \
                                                 .otherwise(df[l_col[1]]))
+
     else:
         df = df.withColumn("quantite_calcule", df[l_col[1]])
     
     #Valeurs taux de remboursement et conversion en valeur réelle
+    if colnames.TAUX_REMBOURSEMENT in df.columns:
+        taux_moy = df.agg({l_col[2] : "mean"}).rdd.flatMap(lambda x: x).collect()[0]
 
-    taux_moy = df.agg({l_col[2] : "mean"}).rdd.flatMap(lambda x: x).collect()[0]
-
-    if taux_moy > 1:
-        df = df.withColumn(l_col[2], F.col(l_col[2]) / 100)
+        if taux_moy > 1:
+            df = df.withColumn(l_col[2], F.col(l_col[2]) / 100)
     
-    df = df.withColumn(l_col[2], F.when(F.col(l_col[2]) > 1, 1).otherwise(F.col(l_col[2])))
+        df = df.withColumn(l_col[2], F.when(F.col(l_col[2]) > 1, 1).otherwise(F.col(l_col[2])))
 
     return df
 
+def export_df(df, fname : tuple):
 
-
-#D_aberr : {variable définie dans coldict : dictionnaire des aberrations(peut être la sortie d'une fonction)}
+    filepath = fname[0]
+    filename = filepath.split('/')[-1].split('.')[0]
+    filetype = fname[1].split('*')[1][:-1]
+    
+    if filetype == ".csv" or ".txt":
+        df.to_csv(filepath, sep=";", index=False)
+    elif filetype == ".xlsx":
+        df.to_excel(filepath, sheet_name = filename, index = False)
+        
