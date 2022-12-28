@@ -107,9 +107,12 @@ class MainWindow_(QtWidgets.QMainWindow):
         self.ui.setupUi(self)
 
         self.d_dict = {} # dictionnaire des indices
-        self.d_types = {}
+        self.d_types = {} # dictionnaire des types
+
         self.dict_mod = {}
-        self.dict_paths = {} #dictionnaire des chemins, {chemin : [etat, (libellé, année)]}
+        self.dict_all_mods = {}
+
+        self.dict_paths = {} # dictionnaire des chemins, {chemin : [etat, (libellé, année)]}
         self.dict_paths_ = {} #{(libelle, année) : chemin}
         self.paths_list = []
 
@@ -210,11 +213,12 @@ class MainWindow_(QtWidgets.QMainWindow):
                     if format and ele in coldict.dates_formats_dict.keys():
                         if format.text() != '':
                             coldict.dates_formats_dict[ele] = format.text()
+                        else:
+                            self.showdialog("Vous n'avez pas saisi le format de la date pour la variable "+ ele+ ". Veuillez reessayer.", "Erreur")
+                            return
             
             for k, v in self.dict_paths.items():
                 self.dict_paths_[(v[1], year)] = k
-                    
-            print(self.dict_paths_)
             
         elif (len(self.dict_indices) > len(self.cmb_texts)):
             self.showdialog("Vous n'avez pas affecté toutes les variables à une colonne. Veuillez réessayer.\nSi une variable n'est pas disponible dans la base, veuillez modifier vos choix en cliquant sur 'Modifier les variables'.", "Erreur")
@@ -231,7 +235,8 @@ class MainWindow_(QtWidgets.QMainWindow):
             d_modalite = dialog_modalites(vars_m, selected_path, self.dict_indices)
             E = d_modalite.exec()
             if (E == d_modalite.Accepted):
-                self.dict_mod[(self.label_base, self.annee)] = d_modalite.db
+                self.dict_mod[(self.label_base, self.annee)] = d_modalite.db # {base : dataframe modifié}
+                self.dict_all_mods = d_modalite.dict_mods # {base : dictionnaire ds modalités}
 
         #Modification de l'état du fichier enregistré. ("Non enregistré" -> "Enregistré")
  
@@ -245,8 +250,6 @@ class MainWindow_(QtWidgets.QMainWindow):
         self.ui.button_enregistrer.setEnabled(False)
         self.ui.button_annuler.setEnabled(False) 
         self.ui.button_modifier_variables.setEnabled(False)
-
-        self.showdialog (str(self.d_dict), "resultat")
 
         #Suppression de l'aperçu de la table
         empty_model = MyTableModel([])
@@ -442,7 +445,7 @@ class MainWindow_(QtWidgets.QMainWindow):
             QtWidgets.QToolTip.showText(self.edit.mapToGlobal(pos), "Caractere non autorise, seuls les caracteres : M, y, d et les separateurs sont autorises", self.edit, self.edit.cursorRect(), 1500)
 
 
-    def check_date_format(self): #Essayer au préalable d'obtenir le schéma directement
+    def check_date_format(self):
         #Vérification du format saisi (pour les variables du type DateType())
 
         chkId = self.bttn_group.checkedId()
@@ -461,10 +464,20 @@ class MainWindow_(QtWidgets.QMainWindow):
         if format_saisi not in current_d.keys(): #Si le format saisi est déjà traité, on ne refait pas le traitement
             dates = readfile.get_col_firstlines(currentpath, current_var, 50)
             print(dates)
+
+            threadsig = QtCore.pyqtSignal()
+            self.loading = QtGui.QMovie("loading.gif")
+            self.loading.setScaledSize(QtCore.QSize(20,20))
+            self.ui.loading_label.setMovie(self.loading)
+            self.loading.start()
+
             l_dates = self.ses_sp.createDataFrame(dates, StringType()) \
                           .withColumn("value", F.to_date(F.to_timestamp(F.trim("value"), format_saisi))) \
                           .select("value").rdd.flatMap(lambda x: x).collect() #liste de dates sur lesquelles on a tenté la conversion avec le format saisi par l'utilisateur
             
+            self.loading.stop()
+            self.ui.loading_label.clear()
+
             if set(l_dates) == {None}: current_d[format_saisi] = 0
             elif set(l_dates) != {None} and None in set(l_dates): current_d[format_saisi] = 1
             else: current_d[format_saisi] = 2
@@ -481,8 +494,8 @@ class MainWindow_(QtWidgets.QMainWindow):
 
         if current_d[format_saisi] == 2:  #La conversion a réussi pour toutes les dates (aucune date n'est convertie en None)
             self.date_obj.setStyleSheet("border: 3px solid lime")
-            QtWidgets.QToolTip.showText(self.date_obj.mapToGlobal(self.pos), "Format correct")
-            
+            QtWidgets.QToolTip.showText(self.date_obj.mapToGlobal(self.pos), "Format correct")         
+    
     def annuler(self):
         #Définit ce que fait le programme quand on clique sur le bouton "Annuler"
 
@@ -555,7 +568,7 @@ class MainWindow_(QtWidgets.QMainWindow):
         return self.d_dict
 
     def lancer_calculs(self):
-            d_traitement = dialog_traitements(self.d_dict, self.d_types, self.dict_paths_, self.dict_mod)
+            d_traitement = dialog_traitements(self.d_dict, self.d_types, self.dict_paths_, self.dict_mod, self.dict_all_mods)
             d_traitement.exec()
 
 if __name__ == '__main__':
