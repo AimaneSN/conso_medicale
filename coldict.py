@@ -230,9 +230,10 @@ dict_t_1 = {STR_densite_travail : ["densite_travail_H", "densite_travail_F"],
              STR_taux_prevalence_ALD : None}
 
 #Input de la table 3
-STR_distrib_salaires_pensions_moy = "Distribution des salaires et des pensions autour de la moyenne"
+STR_distrib_salaires_pensions_moy_actifs = "Distribution des salaires et des pensions autour de la moyenne (actifs)"
+STR_distrib_salaires_pensions_moy_pensionnes = "Distribution des salaires et des pensions autour de la moyenne (pensionnes)"
 
-dict_t_3 = dict.fromkeys([STR_distrib_salaires_pensions_moy])
+dict_t_3 = dict.fromkeys([STR_distrib_salaires_pensions_moy_actifs, STR_distrib_salaires_pensions_moy_pensionnes])
 
 #Input de la table frequence conso
 STR_freq_conso = "Frequence de consommation par categorie demographique et libelle acte"
