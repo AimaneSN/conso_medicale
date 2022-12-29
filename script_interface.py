@@ -463,26 +463,15 @@ class MainWindow_(QtWidgets.QMainWindow):
          
         if format_saisi not in current_d.keys(): #Si le format saisi est déjà traité, on ne refait pas le traitement
             dates = readfile.get_col_firstlines(currentpath, current_var, 50)
-            print(dates)
-
-            threadsig = QtCore.pyqtSignal()
-            self.loading = QtGui.QMovie("loading.gif")
-            self.loading.setScaledSize(QtCore.QSize(20,20))
-            self.ui.loading_label.setMovie(self.loading)
-            self.loading.start()
-
+            
             l_dates = self.ses_sp.createDataFrame(dates, StringType()) \
                           .withColumn("value", F.to_date(F.to_timestamp(F.trim("value"), format_saisi))) \
                           .select("value").rdd.flatMap(lambda x: x).collect() #liste de dates sur lesquelles on a tenté la conversion avec le format saisi par l'utilisateur
-            
-            self.loading.stop()
-            self.ui.loading_label.clear()
 
             if set(l_dates) == {None}: current_d[format_saisi] = 0
             elif set(l_dates) != {None} and None in set(l_dates): current_d[format_saisi] = 1
             else: current_d[format_saisi] = 2
 
-            print(l_dates)
         if current_d[format_saisi] == 0: #La conversion a échoué, format invalide (toutes les dates sont converties en None)
             self.date_obj.setStyleSheet('border: 3px solid red')
             QtWidgets.QToolTip.showText(self.date_obj.mapToGlobal(self.pos), "Format incorrect!")
