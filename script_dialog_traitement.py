@@ -631,7 +631,7 @@ class dialog_traitements(QtWidgets.QDialog):
     
             self.df_output_to_export = pd.DataFrame(output.transpose(), columns=["densite_H","densite_F"])
 
-        elif self.current_input == coldict.STR_freq_conso:
+        else:
             self.df_output_to_export = pd_output
 
         calculs.export_df(self.df_output_to_export, fname)
