@@ -192,16 +192,6 @@ vars_mod = {colnames.TYPE_ADHERENT : type_adh_mod,
 
 #Formats des dates
 
-# dates_formats_dict = {colnames.DNAISSANCE : "yyyy.MM.dd HH:mm:ss",
-#               colnames.DATE_FIN_DO : "yyyyMMdd",
-#               colnames.DATE_IMMATRICULATION : "yyyy-MM-dd",
-#               colnames.DATE_DEBUT_SOIN : "yyyyMMdd",
-#               colnames.DATE_RECEPTION : "yyyyMMdd",
-#               colnames.DATE_LIQUIDAITON : "yyyyMMdd",
-#               colnames.DATE_PAIEMENT : "yyyyMMdd",
-#               colnames.DATE_DEBUT_ACCORD_ALD : "ddMMyyyy",
-#               colnames.DATE_FIN_ACCORD_ALD : "ddMMyyyy"}
-
 dates_formats_dict = {colnames.DNAISSANCE : "MM/dd/yyyy",
               colnames.DATE_FIN_DO : "yyyyMMdd",
               colnames.DATE_IMMATRICULATION : "MM/dd/yyyy",
