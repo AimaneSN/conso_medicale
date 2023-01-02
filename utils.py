@@ -74,7 +74,8 @@ def describe_column(df, colname : str):
     return resultats_describe
 
 def add_rows(df):
-
+    #Fonction pour ajouter les valeurs de l'âge de 0 jusqu'à 110 dans un dataframe Pandas
+    
     D = dict.fromkeys(df.columns)
     for k in D.keys():
         if k not in ['age', colnames.SEXE]:
