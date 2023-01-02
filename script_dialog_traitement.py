@@ -592,48 +592,13 @@ class dialog_traitements(QtWidgets.QDialog):
             return
         
         pd_output = self.df_input.toPandas()
-        cols = list(pd_output.columns)
-        if self.current_input in coldict.dict_t_pop_init.keys() :
-            output = np.zeros((6, 111), dtype = float)
-            for _ , row in pd_output.iterrows():
-                if row[colnames.SEXE] == coldict.sexe_mod[coldict.SEXE_M]:
-                    output[0, int(row["age"])] = int(row[cols[2]])
-                    output[2, int(row["age"])] = float(row[cols[3]])
 
-                elif row[colnames.SEXE] == coldict.sexe_mod[coldict.SEXE_F]:
-                    output[1, int(row["age"])] = int(row[cols[2]])
-                    output[3, int(row["age"])] = float(row[cols[3]])
-
-            if self.current_input == coldict.STR_input_nvx_actifs:
-                for _ , row in pd_output.iterrows():
-                    if row[colnames.SEXE] == coldict.sexe_mod[coldict.SEXE_M]:
-                        output[4, int(row["age"])] = float(row["poids"])
-                    elif row[colnames.SEXE] == coldict.sexe_mod[coldict.SEXE_F]:
-                        output[5, int(row["age"])] = float(row["poids"])       
-            
-            self.df_output_to_export = pd.DataFrame(output.transpose(), columns=coldict.dict_t_pop_init[self.current_input]) \
-                                         .reset_index().rename(columns = {"index" : "age"})
-                
-        elif self.current_input == coldict.STR_taux_masc:
-            output = np.zeros((1, 111), dtype = float)
-            for _ , row in pd_output.iterrows():
-                output[0, int(row["age"])] = float(row["taux_masc"])
-            
-            self.df_output_to_export = pd.DataFrame(output.transpose(), columns=["taux_masc"])
-
-        elif self.current_input == coldict.STR_densite_travail:
-            output = np.zeros((2, 111), dtype = float)
-            for _ , row in pd_output.iterrows():
-                if row[colnames.SEXE] == coldict.sexe_mod[coldict.SEXE_M]:
-                    output[0, int(row["age"])] = float(row["densite_travail"])
-                elif row[colnames.SEXE] == coldict.sexe_mod[coldict.SEXE_F]:
-                    output[1, int(row["age"])] = float(row["densite_travail"])
-    
-            self.df_output_to_export = pd.DataFrame(output.transpose(), columns=["densite_H","densite_F"])
-
+        if self.current_input not in coldict.dict_t_f_c.keys():
+            self.df_output_to_export = utils.add_rows(pd_output)
         else:
             self.df_output_to_export = pd_output
 
+        #Exportation
         calculs.export_df(self.df_output_to_export, fname)
 
     def annuler_input(self):
