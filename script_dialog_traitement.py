@@ -276,6 +276,11 @@ class dialog_traitements(QtWidgets.QDialog):
             self.vars_requises = [colnames.TYPE_ADHERENT, colnames.TYPE_BENEFICIAIRE, colnames.SEXE, colnames.DNAISSANCE, colnames.ASSIETTE_COTISATION]
             self.params = {}
             self.calcul_input = operations_inputs.input_effectifs_pensions_conjoints_surv
+           
+        elif self.current_input == coldict.STR_input_effectifs_dormants:
+            self.vars_requises = [colnames.DNAISSANCE, colnames.SEXE]
+            self.params = {}
+            self.calcul_input = operations_inputs.input_effectifs_dormants
         
         elif self.current_input == coldict.STR_taux_masc:
             self.vars_requises = [colnames.TYPE_BENEFICIAIRE, colnames.DNAISSANCE, colnames.SEXE]
