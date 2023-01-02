@@ -73,6 +73,7 @@ def describe_column(df, colname : str):
 
     return resultats_describe
 
+
 def add_rows(df):
     #Fonction pour ajouter les valeurs de l'âge de 0 jusqu'à 110 dans un dataframe Pandas
     
@@ -104,11 +105,12 @@ def add_rows(df):
                     D['sexe'] = diff[0]
                     df = pd.concat( [df, pd.DataFrame([D], columns = df.columns)], ignore_index = True, axis = 0)
     
-    df = df.sort_values(by = ['age'])
-
     V = list( set(D.keys()) - set(['age', 'sexe']) )
 
-    if "sexe" in D.keys():
+    if "sexe" not in D.keys():
+        df = df.sort_values(by = ['age'])
+    else:
+        df = df.sort_values(by = ['age', 'sexe'], ascending = [True, False])
         df = pd.pivot_table(df, values = V, index = "age", columns = "sexe")
     
     return df
