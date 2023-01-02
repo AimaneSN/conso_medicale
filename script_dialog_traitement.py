@@ -592,14 +592,17 @@ class dialog_traitements(QtWidgets.QDialog):
             return
         
         pd_output = self.df_input.toPandas()
-
+        
+        #Exportation
         if self.current_input not in coldict.dict_t_f_c.keys():
             self.df_output_to_export = utils.add_rows(pd_output)
+            calculs.export_df(self.df_output_to_export, fname)
+
         else:
             self.df_output_to_export = pd_output
-
-        #Exportation
-        calculs.export_df(self.df_output_to_export, fname)
+            calculs.export_df(self.df_output_to_export, fname)
+            with pd.ExcelWriter(fname[0], engine='openpyxl', mode='a') as writer:  
+                pd.DataFrame([{"montant_rembourse_pre" : self.pre, "montant_rembourse_post" : self.post}]).to_excel(writer, sheet_name = "statistiques")
 
     def annuler_input(self):
         self.uit.table_params.setRowCount(0)
