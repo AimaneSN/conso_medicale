@@ -279,7 +279,7 @@ class dialog_traitements(QtWidgets.QDialog):
            
         elif self.current_input == coldict.STR_input_effectifs_dormants:
             self.vars_requises = [colnames.DNAISSANCE, colnames.SEXE]
-            self.params = {}
+            self.params = dict.fromkeys(["annee"])
             self.calcul_input = operations_inputs.input_effectifs_dormants
         
         elif self.current_input == coldict.STR_taux_masc:
