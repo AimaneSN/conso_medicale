@@ -246,11 +246,13 @@ STR_input_effectifs_salaires_actifs = "Effectifs et salaires moyens des actifs c
 STR_input_nvx_actifs = "Effectifs et salaires moyens des nouveaux actifs par age et sexe"
 STR_input_effectifs_pensions_retraites = "Effectifs et pensions moyennes des retraites par age et sexe"
 STR_input_effectifs_pensions_conjoints_surv = "Effectifs et pensions moyennes des conjoints survivants par age et sexe"
+STR_input_effectifs_dormants = "Effectifs des dormants par age et sexe"
 
 dict_t_pop_init = {STR_input_effectifs_salaires_actifs : ["eff_H","eff_F","salaire_moy_H","salaire_moy_F", "_", "_"],
                    STR_input_nvx_actifs : ["eff_H", "eff_F", "salaire_moy_H", "salaire_moy_F", "poids_H", "poids_F"],
                    STR_input_effectifs_pensions_retraites : ["eff_H","eff_F","pension_moy_H","pension_moy_F", "_", "_"],
-                   STR_input_effectifs_pensions_conjoints_surv : ["eff_H","eff_F","pension_moy_H","pension_moy_F", "_", "_"]}
+                   STR_input_effectifs_pensions_conjoints_surv : ["eff_H","eff_F","pension_moy_H","pension_moy_F", "_", "_"],
+                   STR_input_effectifs_dormants : None}
 
 #Dictionnaire de tous les inputs
 dict_inputs = {STR_table_1_a_s : dict_t_1,
