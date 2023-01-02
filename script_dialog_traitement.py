@@ -408,12 +408,12 @@ class dialog_traitements(QtWidgets.QDialog):
                 choix = dialog_f.get_choix_matrice()
 
                 if choix == coldict.MATRICE_CONSO:
-                    self.df_input, pre, post = operations_inputs.matrice_conso(base, actes_ph)
+                    self.df_input, self.pre, self.post = operations_inputs.matrice_conso(base, actes_ph)
                     dict_eff = operations_inputs.effectifs_cat_demo(base)
                     self.df_input = operations_inputs.freq_conso(self.df_input, dict_eff)
                 
                 elif choix == coldict.MATRICE_PHARMA:
-                    self.df_input, pre, post = operations_inputs.matrice_conso_ph(base, actes_ph)
+                    self.df_input, self.pre, self.post = operations_inputs.matrice_conso_ph(base, actes_ph)
                     dict_eff = operations_inputs.effectifs_cat_demo(base)
                     self.df_input = operations_inputs.freq_conso(self.df_input, dict_eff)
                 
