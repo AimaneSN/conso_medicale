@@ -338,7 +338,7 @@ def export_df(df, fname : tuple):
     filetype = fname[1].split('*')[1][:-1]
     
     if filetype in [".csv", ".txt"]:
-        df.to_csv(filepath, sep=";", index=False)
+        df.to_csv(filepath, sep=";", index=True)
     elif filetype == ".xlsx":
-        df.to_excel(filepath, sheet_name = filename, index = False)
+        df.to_excel(filepath, sheet_name = filename, index = True)
         
