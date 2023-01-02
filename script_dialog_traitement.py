@@ -606,9 +606,11 @@ class dialog_traitements(QtWidgets.QDialog):
         else:
             self.df_output_to_export = pd_output
             calculs.export_df(self.df_output_to_export, fname)
-            with pd.ExcelWriter(fname[0], engine='openpyxl', mode='a') as writer:  
-                pd.DataFrame([{"montant_rembourse_pre" : self.pre, "montant_rembourse_post" : self.post}]).to_excel(writer, sheet_name = "statistiques")
-
+            filetype = fname[1].split('*')[1][:-1]
+            if filetype == ".xlsx":
+                with pd.ExcelWriter(fname[0], engine='openpyxl', mode='a') as writer:  
+                    pd.DataFrame([{"montant_rembourse_pre" : self.pre, "montant_rembourse_post" : self.post}]).to_excel(writer, sheet_name = "statistiques")
+                 
     def annuler_input(self):
         self.uit.table_params.setRowCount(0)
         self.uit.table_variables_requises.setRowCount(0)
