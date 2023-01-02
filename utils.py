@@ -2,6 +2,8 @@ import coldict
 import colnames 
 import  pyspark.sql.functions  as F
 from pyspark.sql.types import *
+import pandas as pd
+import copy
 
 def rename_columns(df, dict_columns : dict):
     #Renommage des colonnes avec le noms et les indices figurant dans dict_columns
@@ -30,8 +32,7 @@ def convert_columns(df, dict_types : dict):
             df = df.withColumn(col, df[col].cast(DoubleType()))
 
         elif dict_types[col] == coldict.SPARK_DATE:
-            print(coldict.dates_formats_dict)
-            df = df.withColumn(col, df[col].cast(StringType()))
+            df = df.withColumn(col, F.trim(df[col]).cast(StringType()))
             df = df.withColumn(col, F.to_date(F.to_timestamp(df[col], coldict.dates_formats_dict[col])))
     
     return df
@@ -46,13 +47,12 @@ def convert_column(df, column : str, coltype : str):
 
     elif coltype == coldict.SPARK_DOUBLE:
         df = df.withColumn(column, df[column].cast(StringType()))
-        df = df.withColumn(column, F.regexp_replace(column, ",", ".")) 
+        df = df.withColumn(column, F.regexp_replace(F.trim(column), ",", ".")) 
         df = df.withColumn(column, df[column].cast(DoubleType()))
 
     elif coltype == coldict.SPARK_DATE:
         df = df.withColumn(column, F.trim(df[column]).cast(StringType()))
         df = df.withColumn(column, F.to_date(F.to_timestamp(df[column], coldict.dates_formats_dict[column])))
-        print(coldict.dates_formats_dict[column])
     
     return df
 
@@ -73,3 +73,41 @@ def describe_column(df, colname : str):
 
     return resultats_describe
 
+def add_rows(df):
+
+    D = dict.fromkeys(df.columns)
+    for k in D.keys():
+        if k not in ['age', colnames.SEXE]:
+            D[k] = 0
+    
+    D_m, D_f = copy.deepcopy(D), copy.deepcopy(D)
+
+    if 'sexe' in D.keys():    
+        D_m['sexe'] = 'M'
+        D_f['sexe'] = 'F'
+        L_append = [D_m, D_f]
+
+    else:
+        L_append = [D]
+    
+    for i in range(0, 111):
+        D_m['age'], D_f['age'], D['age'] = i, i, i
+
+        if i not in df["age"].to_list():
+            df = pd.concat( [df, pd.DataFrame(L_append, columns = df.columns)], ignore_index = True, axis = 0)
+        else:
+            if 'sexe' in D.keys():
+                L = df.query("age == " + str(i))["sexe"].to_list()
+                diff = list(set(['F', 'M']) - set(L))
+                if (len(diff) == 1):
+                    D['sexe'] = diff[0]
+                    df = pd.concat( [df, pd.DataFrame([D], columns = df.columns)], ignore_index = True, axis = 0)
+    
+    df = df.sort_values(by = ['age'])
+
+    V = list( set(D.keys()) - set(['age', 'sexe']) )
+
+    if "sexe" in D.keys():
+        df = pd.pivot_table(df, values = V, index = "age", columns = "sexe")
+    
+    return df
