@@ -54,6 +54,9 @@ class dialog_fusionner(QtWidgets.QDialog):
         self.uif.combo_join_type.currentTextChanged.connect(self.join_type)
 
         self.uif.button_fusionner.clicked.connect(self.accept)
+        
+        self.uif.combo_cle_d.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
+        self.uif.combo_cle_g.setSizeAdjustPolicy(QtWidgets.QComboBox.AdjustToContents)
 
         self.uif.combo_cle_d.setEnabled(False)
         self.uif.combo_cle_g.setEnabled(False)
