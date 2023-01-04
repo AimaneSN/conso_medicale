@@ -427,7 +427,7 @@ class dialog_traitements(QtWidgets.QDialog):
                 return
         
         elif self.current_input == coldict.STR_freq_conso_medic:
-            self.df_input, pre, post = operations_inputs.matrice_conso_medic(base)
+            self.df_input, self.pre, self.post = operations_inputs.matrice_conso_medic(base)
             dict_eff = operations_inputs.effectifs_cat_demo(base)
             self.df_input = operations_inputs.freq_conso(self.df_input, dict_eff)
 
