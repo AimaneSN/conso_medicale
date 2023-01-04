@@ -40,9 +40,13 @@ class dialog_freqconso(QtWidgets.QDialog):
         
         self.uiq.table_mods_pharma.setEnabled(False)
         self.uiq.button_enregistrer_conso.setEnabled(False)
+        self.uiq.button_selectionner_matrice.setEnabled(False)
+        self.uiq.button_annuler_matrice.setEnabled(False)
 
         self.uiq.button_enregistrer_conso.clicked.connect(self.accept)
         self.uiq.button_annuler_conso.clicked.connect(self.reject)
+        self.uiq.button_selectionner_matrice.clicked.connect(self.selectionner_matrice)
+        self.uiq.button_annuler_matrice.clicked.connect(self.annuler_matrice)
 
         self.actes = []
         self.actes_pharma = []
@@ -53,26 +57,42 @@ class dialog_freqconso(QtWidgets.QDialog):
         if text == " ":
             self.uiq.table_mods_pharma.setEnabled(False)
             self.uiq.button_enregistrer_conso.setEnabled(False)
+            self.uiq.button_selectionner_matrice.setEnabled(False)
 
-        else:
-            self.matrice_choisie = text
-            if self.actes == []:
-                self.actes = self.df.select(colnames.CODE_ACTE).distinct().rdd.flatMap(lambda x: x).collect()
-                self.actes_ph = [acte for acte in self.actes if acte.startswith(("ph", "Ph", "PH"))]
-
-            self.uiq.table_mods_pharma.setEnabled(True)
-            self.uiq.table_mods_pharma.setRowCount(0)
-
-            for acte in self.actes_ph:
-                rowPos = self.uiq.table_mods_pharma.rowCount()
-                chk_box = QtWidgets.QCheckBox()
-
-                self.uiq.table_mods_pharma.insertRow(rowPos)
-                self.uiq.table_mods_pharma.setCellWidget(rowPos, 0, chk_box)
-                self.uiq.table_mods_pharma.setItem(rowPos, 1, QtWidgets.QTableWidgetItem(acte))
-            
-            self.uiq.button_enregistrer_conso.setEnabled(True)
+        else:            
+            self.uiq.button_selectionner_matrice.setEnabled(True)
     
+    def selectionner_matrice(self):
+
+        self.matrice_choisie = self.uiq.combo_type_conso.currentText()
+
+        self.actes = self.df.select(colnames.CODE_ACTE).distinct().rdd.flatMap(lambda x: x).collect()
+        self.actes_ph = [acte for acte in self.actes if acte.startswith(("ph", "Ph", "PH"))]
+
+        self.uiq.table_mods_pharma.setEnabled(True)
+        self.uiq.table_mods_pharma.setRowCount(0)
+
+        for acte in self.actes_ph:
+            rowPos = self.uiq.table_mods_pharma.rowCount()
+            chk_box = QtWidgets.QCheckBox()
+
+            self.uiq.table_mods_pharma.insertRow(rowPos)
+            self.uiq.table_mods_pharma.setCellWidget(rowPos, 0, chk_box)
+            self.uiq.table_mods_pharma.setItem(rowPos, 1, QtWidgets.QTableWidgetItem(acte))
+        
+        self.uiq.button_selectionner_matrice.setEnabled(False)
+        self.uiq.button_annuler_matrice.setEnabled(True)
+        self.uiq.combo_type_conso.setEnabled(False)
+
+        self.uiq.button_enregistrer_conso.setEnabled(True)
+
+    def annuler_matrice(self):
+        self.uiq.table_mods_pharma.setRowCount(0)
+
+        self.uiq.combo_type_conso.setEnabled(True)
+        self.uiq.button_selectionner_matrice.setEnabled(True)
+        self.uiq.button_enregistrer_conso.setEnabled(False)
+
     def accept(self):
 
         nrow = self.uiq.table_mods_pharma.rowCount()
