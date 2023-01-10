@@ -116,6 +116,10 @@ class dialog_traitements(QtWidgets.QDialog):
                     mod_list_all = list(self.dict_all_mods[var])
                     mods = {k : v for k, v in self.dict_all_mods[var].items() if v != None}
                     if mods != self.dict_all_mods[var]: # Il y a au moins une modalité non attribuée
+                        confirmation_traitement_mod = self.showdialog("Vous n'avez pas attribue certaines modalites pour la variable "+var+". Voulez-vous traiter ces modalites ? Cette operation prendra du temps.", "Modalites manquantes")
+                        if not confirmation_traitement_mod:
+                            continue
+                          
                         self.dict_df[base] = calculs.manquants_mod_conso(self.dict_df[base], var, mods, mod_list_all)[0]
                 
             L_schema = [ele.simpleString().split(":") for ele in self.dict_df[base].schema]
