@@ -283,17 +283,18 @@ class MainWindow_(QtWidgets.QMainWindow):
 
         #Ouverture d'une boîte de dialogue de fichier (File Dialog) permettant à l'utilisateur de choisir la base, on obtient ainsi le chemin absolu de la base
         fname = QtWidgets.QFileDialog.getOpenFileName(self.ui.centralwidget, 'Selectionnez le fichier a importer')
+        
+        #Vérifie si l'utilisateur a sélectionné un fichier
         if fname[0] == '':
             return
         
+        #Vérifie si la base n'a pas été déjà ajoutée
         if fname[0] in self.dict_paths.keys():
             self.showdialog_ok("Vous avez deja ajoute ce fichier", "Erreur")
             return
 
         self.dict_paths[fname[0]] = (False, " ", None)
         self.paths_list.append(fname[0])
-
-        #Vérifie si la base n'a pas été déjà ajoutée
 
         self.radio_base = QtWidgets.QRadioButton()
         rowPos = self.ui.bases_table.rowCount()
